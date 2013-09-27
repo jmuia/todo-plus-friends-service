@@ -1,0 +1,18 @@
+application: myservice
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: yes
+
+handlers:
+- url: /api.js
+  static_files: api.js
+  upload: api.js
+
+- url: /.*
+  script: api.app
+  secure: always
+
+libraries:
+- name: webapp2
+  version: "2.5.1"
