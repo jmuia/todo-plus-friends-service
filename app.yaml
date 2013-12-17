@@ -10,7 +10,7 @@ handlers:
   upload: api.js
 
 - url: /.*
-  script: api.app
+  script: app.app
   secure: always
 
 libraries:
