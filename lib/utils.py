@@ -7,7 +7,8 @@ import webapp2
 
 
 
-DEBUG = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
+DEBUG   = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
+ORIGINS = '*'
 
 
 
@@ -22,13 +23,13 @@ class BaseHandler(webapp2.RequestHandler):
 
 	def options(self, *args, **kwargs):
 		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-		self.response.headers['Access-Control-Allow-Origin' ] = '*'
+		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
 		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
 		self.response.headers['Cache-Control'               ] = 'no-cache'
 
 	def respond(self, data, content_type='application/json', cache_life=0):
 		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-		self.response.headers['Access-Control-Allow-Origin' ] = '*'
+		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
 
 		if cache_life:
 			self.response.headers['Cache-Control'] = 'max-age=%s' % cache_life
