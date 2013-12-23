@@ -8,6 +8,9 @@
 			});
 		}
 	});
+
+	To target a specific service URL:
+	API.prefix = 'https://someotherservice.com/';
 */
 
 var API = function () {
