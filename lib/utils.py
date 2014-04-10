@@ -14,35 +14,35 @@ import webapp2
 
 
 DEBUG   = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
-ORIGINS = '*'
+ORIGINS = '*' # change this if you want to lock access by domain
 OPTIONS_CACHE = 365 * 24 * 60 * 60 # 1 year
 
 
 
+allowed_methods = webapp2.WSGIApplication.allowed_methods
+webapp2.WSGIApplication.allowed_methods = allowed_methods.union(('PATCH',))
+
+
+
 class BaseModel(ndb.Model):
-	_excludes   = []
+	_include    = None
+	_exclude    = []
 	_fetch_keys = True
 
-	@classmethod
-	@ndb.transactional
-	def get_or_create(Cls, entity_id):
-		entity = Cls.get_by_id(entity_id)
-		if entity is None:
-			entity = Cls(id=entity_id)
-			entity.put()
-		return entity
-
-	def to_dict(self, excludes=None, fetch_keys=None):
-		if excludes is None:
-			excludes = []
+	def to_dict(self, include=None, exclude=None, fetch_keys=None):
+		if include is None:
+			if _include is not None:
+				include = _include
+		if exclude is None:
+			exclude = []
 		if fetch_keys is None:
 			fetch_keys = self._fetch_keys
-		excludes.extend(self._excludes)
+		exclude.extend(self._exclude)
 		props = {}
-		if 'id' not in excludes:
+		if 'id' not in exclude and (include is None or 'id' in include):
 			props['id'] = self.key.id()
 		for key, prop in self._properties.iteritems():
-			if key not in excludes:
+			if key not in exclude and (include is None or key in include):
 				value = getattr(self, key)
 				if isinstance(value, datetime):
 					props[key] = int( mktime(value.utctimetuple()) ) * 1000
@@ -103,10 +103,13 @@ class BaseHandler(webapp2.RequestHandler):
 			self.response.headers['Content-Type'] = content_type
 			self.response.out.write(data)
 
-	def respond_error(self, code, message=''):
+	def respond_error(self, code, message='', cache_life=0):
 		self.response.set_status(code)
 		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
 		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
-		self.response.headers['Cache-Control'] = 'no-cache'
+		if cache_life:
+			self.response.headers['Cache-Control'] = 'max-age=%s' % cache_life
+		else:
+			self.response.headers['Cache-Control'] = 'no-cache'
 		self.response.headers['Content-Type' ] = 'text/plain'
 		self.response.out.write(message)
