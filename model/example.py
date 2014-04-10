@@ -2,7 +2,9 @@
 
 from google.appengine.ext import ndb
 
+from lib.utils import BaseModel
 
 
-class Example(ndb.Model):
+
+class Example(BaseModel):
 	value = ndb.StringProperty()
