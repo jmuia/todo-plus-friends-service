@@ -31,8 +31,8 @@ class BaseModel(ndb.Model):
 
 	def to_dict(self, include=None, exclude=None, fetch_keys=None):
 		if include is None:
-			if _include is not None:
-				include = _include
+			if self._include is not None:
+				include = self._include
 		if exclude is None:
 			exclude = []
 		if fetch_keys is None:

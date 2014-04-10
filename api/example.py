@@ -9,7 +9,7 @@ class CreateExampleHandler(BaseHandler):
 	def post(self):
 		example = Example(value=self.params['value'])
 		example.put()
-		self.respond({ 'example_id' : example.key.id() })
+		self.respond(example)
 
 class ExampleHandler(BaseHandler):
 	def get(self, example_id):
@@ -17,7 +17,7 @@ class ExampleHandler(BaseHandler):
 		if example is None:
 			self.error(404)
 		else:
-			self.respond(example.to_dict(), cache_life=60*60) # cache for 1 hour
+			self.respond(example, cache_life=60*60) # cache for 1 hour
 
 class RawValueHandler(BaseHandler):
 	def get(self, example_id):
