@@ -1,15 +1,12 @@
-all: test
+all: debug
 
 test:
 	python -m unittest discover -v -t . -s test
-
-test-pypy:
-	pypy -m unittest discover -v -t . -s test
 
 debug:
 	dev_appserver.py --host 0.0.0.0 .
 
 deploy:
-	appcfg.py update .
+	make test && appcfg.py update --oauth2 .
 
-.PHONY: test test-deps debug deply
+.PHONY: test debug deploy

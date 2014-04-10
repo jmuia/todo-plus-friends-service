@@ -30,7 +30,7 @@ class RawValueHandler(BaseHandler):
 
 
 routes = [
-	(r'/example/?'          , CreateExampleHandler),
-	(r'/example/(\d+)/?'    , ExampleHandler      ),
-	(r'/example/(\d+)/raw/?', RawValueHandler     ),
+	(r'/example/'         , CreateExampleHandler),
+	(r'/example/(\d+)'    , ExampleHandler      ),
+	(r'/example/(\d+)/raw', RawValueHandler     ),
 ]

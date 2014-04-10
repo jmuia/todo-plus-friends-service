@@ -42,14 +42,13 @@ class TestBase(unittest.TestCase):
 		tasks =  self.get_tasks(queue)
 		responses = []
 		for task in tasks:
-			params = base64.b64decode(task["body"])
-			response = self.testapp.post(task["url"], params)
+			params = base64.b64decode(task['body'])
+			response = self.testapp.post(task['url'], params)
 			responses.append(response)
 		return tasks, responses
 
-	def api_call(self, method, resource, data=None):
+	def api_call(self, method, resource, data=None, status=200, headers={}):
 		method  = method.lower()
-		url     = '/'+resource
 		is_json = False
 
 		if data and (type(data) is dict) and (method in ['post', 'put']):
@@ -60,4 +59,4 @@ class TestBase(unittest.TestCase):
 		else:
 			func = getattr(self.testapp, method.lower())
 
-		return func('/'+resource, params=data)
+		return func(resource, params=data, status=status, headers=headers)

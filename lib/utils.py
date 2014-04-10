@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-from json import dumps as to_json, loads as from_json
-from os   import environ
+import logging
+from datetime import datetime
+from json     import dumps as to_json, loads as from_json
+from os       import environ
+from time     import mktime
 
 from google.appengine.api.datastore_errors import BadValueError
 from google.appengine.api.validation       import ValidationError
@@ -12,12 +15,22 @@ import webapp2
 
 DEBUG   = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
 ORIGINS = '*'
+OPTIONS_CACHE = 365 * 24 * 60 * 60 # 1 year
 
 
 
 class BaseModel(ndb.Model):
 	_excludes   = []
 	_fetch_keys = True
+
+	@classmethod
+	@ndb.transactional
+	def get_or_create(Cls, entity_id):
+		entity = Cls.get_by_id(entity_id)
+		if entity is None:
+			entity = Cls(id=entity_id)
+			entity.put()
+		return entity
 
 	def to_dict(self, excludes=None, fetch_keys=None):
 		if excludes is None:
@@ -31,6 +44,8 @@ class BaseModel(ndb.Model):
 		for key, prop in self._properties.iteritems():
 			if key not in excludes:
 				value = getattr(self, key)
+				if isinstance(value, datetime):
+					props[key] = int( mktime(value.utctimetuple()) ) * 1000
 				if isinstance(value, ndb.Key):
 					if fetch_keys:
 						value = value.get().to_dict()
@@ -69,8 +84,8 @@ class BaseHandler(webapp2.RequestHandler):
 	def options(self, *args, **kwargs):
 		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
 		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
-		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-		self.response.headers['Cache-Control'               ] = 'no-cache'
+		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+		self.response.headers['Cache-Control'               ] = 'public, max-age=%s' % OPTIONS_CACHE
 
 	def respond(self, data, content_type='application/json', cache_life=0):
 		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
@@ -87,3 +102,11 @@ class BaseHandler(webapp2.RequestHandler):
 		else:
 			self.response.headers['Content-Type'] = content_type
 			self.response.out.write(data)
+
+	def respond_error(self, code, message=''):
+		self.response.set_status(code)
+		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
+		self.response.headers['Cache-Control'] = 'no-cache'
+		self.response.headers['Content-Type' ] = 'text/plain'
+		self.response.out.write(message)
