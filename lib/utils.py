@@ -97,6 +97,10 @@ class BaseHandler(webapp2.RequestHandler):
 			self.response.headers['Cache-Control'] = 'no-cache'
 
 		if content_type == 'application/json':
+			if isinstance(data, BaseModel):
+				data = data.to_dict()
+			elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], BaseModel):
+				data = [e.to_dict() for e in data]
 			self.response.headers['Content-Type'] = 'application/json'
 			self.response.out.write( to_json(data, separators=(',',':')) )
 		else:
