@@ -3,6 +3,8 @@
 import os
 import sys
 
+os.environ['SERVER_SOFTWARE'] = 'Development'
+
 
 import subprocess
 import tempfile

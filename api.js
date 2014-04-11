@@ -33,6 +33,7 @@ var API = function () {
 		switch (method) {
 			case 'POST':
 			case 'PUT':
+			case 'PATCH':
 				if (data && (typeof data === 'object')) {
 					contentType = 'application/json';
 					data = JSON.stringify(data);
