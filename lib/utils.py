@@ -24,6 +24,21 @@ webapp2.WSGIApplication.allowed_methods = allowed_methods.union(('PATCH',))
 
 
 
+def admin_only(func):
+	def wrapper(self, *args, **kwargs):
+		if not is_admin():
+			logging.info('user must be admin')
+			self.redirect( users.create_login_url('/') )
+		else:
+			return func(self, *args, **kwargs)
+		return func(self, *args, **kwargs)
+	return wrapper
+
+def is_admin(*args, **kwargs):
+	return DEBUG or users.is_current_user_admin()
+
+
+
 class BaseModel(ndb.Model):
 	_include    = None
 	_exclude    = []
