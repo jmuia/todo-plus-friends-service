@@ -122,21 +122,25 @@ class BaseHandler(webapp2.RequestHandler):
 
 class RESTHandler(BaseHandler):
 	Model = None
-	def can_list(self, entities):
-		return False
-	def can_create(self, entity):
-		return False
-	def can_read(self, entity):
-		return False
-	def can_update(self, entity):
-		return False
-	def can_delete(self, entity):
-		return False
+	def can_list(self, entities): return False
+	def can_create(self, entity): return False
+	def can_read(self, entity): return False
+	def can_update(self, entity): return False
+	def can_delete(self, entity): return False
+	def _can_do(self, action, entity):
+		func = getattr(self, 'can_'+action)
+		if isinstance(func, bool):
+			return func
+		else:
+			try:
+				return func(entity) or False
+			except:
+				return False
 
 	def get(self, entity_id):
 		if not entity_id:
 			entities = self.Model.query().fetch()
-			if self.can_list(entities) is False:
+			if not self._can_do('list', entities):
 				self.respond_error(403, 'forbidden')
 			else:
 				self.respond(entities)
@@ -145,7 +149,7 @@ class RESTHandler(BaseHandler):
 			if entity is None:
 				self.respond_error(404, 'not found')
 			else:
-				if self.can_read(entity) is False:
+				if not self._can_do('read', entity):
 					self.respond_error(403, 'forbidden')
 				else:
 					self.respond(entity)
@@ -161,13 +165,13 @@ class RESTHandler(BaseHandler):
 			entity = self.Model()
 		entity.populate(**self.body_params)
 		if entity_id:
-			if self.can_update(entity) is False:
+			if not self._can_do('update', entity):
 				self.respond_error(403, 'forbidden')
 			else:
 				entity.put()
 				self.respond(entity)
 		else:
-			if self.can_create(entity) is False:
+			if not self._can_do('create', entity):
 				self.respond_error(403, 'forbidden')
 			else:
 				entity.put()
@@ -181,13 +185,13 @@ class RESTHandler(BaseHandler):
 		entity = self.Model(id=int(entity_id))
 		entity.populate(**self.body_params)
 		if existing_entity:
-			if self.can_update(entity) is False:
+			if not self._can_do('update', entity):
 				self.respond_error(403, 'forbidden')
 			else:
 				entity.put()
 				self.respond(entity)
 		else:
-			if self.can_create(entity) is False:
+			if not self._can_do('create', entity):
 				self.respond_error(403, 'forbidden')
 			else:
 				entity.put()
@@ -202,7 +206,7 @@ class RESTHandler(BaseHandler):
 			self.respond_error(404, 'not found')
 			return
 		entity.populate(**self.body_params)
-		if self.can_update(entity) is False:
+		if not self._can_do('update', entity):
 			self.respond_error(403, 'forbidden')
 		else:
 			entity.put()
@@ -216,7 +220,7 @@ class RESTHandler(BaseHandler):
 		if entity is None:
 			self.respond_error(404, '')
 		else:
-			if self.can_delete(entity) is False:
+			if not self._can_do('delete', entity):
 				self.respond_error(403, '')
 			else:
 				entity.key.delete()
