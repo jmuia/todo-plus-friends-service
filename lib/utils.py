@@ -152,12 +152,19 @@ class RESTHandler(BaseHandler):
 				value = self.body_params[prop]
 				prop_field = getattr(self.Model, prop)
 				if isinstance(prop_field, ndb.DateTimeProperty):
-					value = datetime.utcfromtimestamp( int(value/1000.0) )
+					try:
+						value = datetime.utcfromtimestamp( int(value/1000.0) )
+					except:
+						raise BadValueError('failed to parse datetime')
 				elif isinstance(prop_field, ndb.KeyProperty):
 					if prop_field._repeated:
 						value = [ndb.Key(prop_field._kind, v) for v in value]
+						if None in ndb.get_multi(value):
+							raise BadValueError('stored key must reference an existing entity')
 					else:
 						value = ndb.Key(prop_field._kind, value)
+						if value.get() is None:
+							raise BadValueError('stored key must reference an existing entity')
 				entity.populate(**{ prop: value })
 
 	def get(self, entity_id):
