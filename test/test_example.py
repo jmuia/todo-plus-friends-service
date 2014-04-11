@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from test_base import *
+from test_base import TestBase
 
 
 

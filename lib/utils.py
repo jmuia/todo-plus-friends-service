@@ -65,12 +65,12 @@ class BaseHandler(webapp2.RequestHandler):
 	def initialize(self, *args, **kwargs):
 		value = super(BaseHandler, self).initialize(*args, **kwargs)
 		try:
-			body_params = from_json(self.request.body)
+			self.body_params = from_json(self.request.body)
 		except:
-			body_params = {}
+			self.body_params = {}
 		self.params = {}
 		self.params.update(self.request.params)
-		self.params.update(body_params)
+		self.params.update(self.body_params)
 		return value
 
 	def handle_exception(self, exception, debug):
@@ -117,3 +117,107 @@ class BaseHandler(webapp2.RequestHandler):
 			self.response.headers['Cache-Control'] = 'no-cache'
 		self.response.headers['Content-Type' ] = 'text/plain'
 		self.response.out.write(message)
+
+
+
+class RESTHandler(BaseHandler):
+	Model = None
+	def can_list(self, entities):
+		return False
+	def can_create(self, entity):
+		return False
+	def can_read(self, entity):
+		return False
+	def can_update(self, entity):
+		return False
+	def can_delete(self, entity):
+		return False
+
+	def get(self, entity_id):
+		if not entity_id:
+			entities = self.Model.query().fetch()
+			if self.can_list(entities) is False:
+				self.respond_error(403, 'forbidden')
+			else:
+				self.respond(entities)
+		else:
+			entity = self.Model.get_by_id( int(entity_id) )
+			if entity is None:
+				self.respond_error(404, 'not found')
+			else:
+				if self.can_read(entity) is False:
+					self.respond_error(403, 'forbidden')
+				else:
+					self.respond(entity)
+
+	def post(self, entity_id):
+		if entity_id:
+			existing_entity = self.Model.get_by_id( int(entity_id) )
+			if existing_entity is None:
+				self.respond_error(404, 'not found')
+		if entity_id:
+			entity = self.Model(id=int(entity_id))
+		else:
+			entity = self.Model()
+		entity.populate(**self.body_params)
+		if entity_id:
+			if self.can_update(entity) is False:
+				self.respond_error(403, 'forbidden')
+			else:
+				entity.put()
+				self.respond(entity)
+		else:
+			if self.can_create(entity) is False:
+				self.respond_error(403, 'forbidden')
+			else:
+				entity.put()
+				self.respond(entity)
+
+	def put(self, entity_id):
+		if not entity_id:
+			self.respond_error(405, 'method not allowed')
+			return
+		existing_entity = self.Model.get_by_id( int(entity_id) )
+		entity = self.Model(id=int(entity_id))
+		entity.populate(**self.body_params)
+		if existing_entity:
+			if self.can_update(entity) is False:
+				self.respond_error(403, 'forbidden')
+			else:
+				entity.put()
+				self.respond(entity)
+		else:
+			if self.can_create(entity) is False:
+				self.respond_error(403, 'forbidden')
+			else:
+				entity.put()
+				self.respond(entity)
+
+	def patch(self, entity_id):
+		if not entity_id:
+			self.respond_error(405, 'method not allowed')
+			return
+		entity = self.Model.get_by_id( int(entity_id) )
+		if entity is None:
+			self.respond_error(404, 'not found')
+			return
+		entity.populate(**self.body_params)
+		if self.can_update(entity) is False:
+			self.respond_error(403, 'forbidden')
+		else:
+			entity.put()
+			self.respond(entity)
+
+	def delete(self, entity_id):
+		if not entity_id:
+			self.respond_error(405, 'method not allowed')
+			return
+		entity = self.Model.get_by_id( int(entity_id) )
+		if entity is None:
+			self.respond_error(404, '')
+		else:
+			if self.can_delete(entity) is False:
+				self.respond_error(403, '')
+			else:
+				entity.key.delete()
+				self.respond(entity)

@@ -106,4 +106,7 @@ class TestBase(TestCase):
 		else:
 			func = getattr(self.testapp, method.lower())
 
-		return func(resource, params=data, status=status, headers=headers)
+		if data:
+			return func(resource, params=data, status=status, headers=headers)
+		else:
+			return func(resource, status=status, headers=headers)
