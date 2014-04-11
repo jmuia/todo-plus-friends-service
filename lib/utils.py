@@ -51,7 +51,7 @@ class BaseModel(ndb.Model):
 						value = value.get().to_dict()
 					else:
 						value = value.id()
-				elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], ndb.Key):
+				elif isinstance(value, (list, tuple)) and len(value) > 0 and isinstance(value[0], ndb.Key):
 					if fetch_keys:
 						value = [e.to_dict() for e in ndb.get_multi(value)]
 					else:
@@ -99,7 +99,7 @@ class BaseHandler(webapp2.RequestHandler):
 		if content_type == 'application/json':
 			if isinstance(data, BaseModel):
 				data = data.to_dict()
-			elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], BaseModel):
+			elif isinstance(data, (list, tuple)) and len(data) > 0 and isinstance(data[0], BaseModel):
 				data = [e.to_dict() for e in data]
 			self.response.headers['Content-Type'] = 'application/json'
 			self.response.out.write( to_json(data, separators=(',',':')) )
@@ -137,6 +137,29 @@ class RESTHandler(BaseHandler):
 			except:
 				return False
 
+	def _populate_entity(self, entity):
+		props = self.Model._include
+		if props is None:
+			props = self.Model._properties.keys()
+		if self.Model._exclude:
+			for prop in self.Model._exclude:
+				if prop in props:
+					props.remove(prop)
+		if 'id' in props:
+			props.remove('id')
+		for prop in props:
+			if prop in self.body_params:
+				value = self.body_params[prop]
+				prop_field = getattr(self.Model, prop)
+				if isinstance(prop_field, ndb.DateTimeProperty):
+					value = datetime.utcfromtimestamp( int(value/1000.0) )
+				elif isinstance(prop_field, ndb.KeyProperty):
+					if prop_field._repeated:
+						value = [ndb.Key(prop_field._kind, v) for v in value]
+					else:
+						value = ndb.Key(prop_field._kind, value)
+				entity.populate(**{ prop: value })
+
 	def get(self, entity_id):
 		if not entity_id:
 			entities = self.Model.query().fetch()
@@ -163,7 +186,7 @@ class RESTHandler(BaseHandler):
 			entity = self.Model(id=int(entity_id))
 		else:
 			entity = self.Model()
-		entity.populate(**self.body_params)
+		self._populate_entity(entity)
 		if entity_id:
 			if not self._can_do('update', entity):
 				self.respond_error(403, 'forbidden')
@@ -183,7 +206,7 @@ class RESTHandler(BaseHandler):
 			return
 		existing_entity = self.Model.get_by_id( int(entity_id) )
 		entity = self.Model(id=int(entity_id))
-		entity.populate(**self.body_params)
+		self._populate_entity(entity)
 		if existing_entity:
 			if not self._can_do('update', entity):
 				self.respond_error(403, 'forbidden')
@@ -205,7 +228,7 @@ class RESTHandler(BaseHandler):
 		if entity is None:
 			self.respond_error(404, 'not found')
 			return
-		entity.populate(**self.body_params)
+		self._populate_entity(entity)
 		if not self._can_do('update', entity):
 			self.respond_error(403, 'forbidden')
 		else:

@@ -3,8 +3,10 @@
 from google.appengine.ext import ndb
 
 from lib.utils import BaseModel
+from model.example import Example
 
 
 
 class RestExample(BaseModel):
-	value = ndb.StringProperty()
+	value    = ndb.StringProperty()
+	examples = ndb.KeyProperty(Example, repeated=True)

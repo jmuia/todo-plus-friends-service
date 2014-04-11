@@ -22,3 +22,7 @@ class RestExampleTest(TestBase):
 		rest_example = self.api_call('delete', '/rest-example/%s' % rest_example['id']).json
 		assert rest_example['value'] == value2
 		self.api_call('get', '/rest-example/%s' % rest_example['id'], status=404)
+
+		example = self.api_call('post', '/example/', { 'value': value }).json
+		rest_example = self.api_call('post', '/rest-example/', { 'value': value, 'examples': [example['id']] }).json
+		assert rest_example['examples'] == [example]
