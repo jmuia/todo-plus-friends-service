@@ -46,7 +46,7 @@ class BaseModel(ndb.Model):
 				value = getattr(self, key)
 				if isinstance(value, datetime):
 					props[key] = int( mktime(value.utctimetuple()) ) * 1000
-				if isinstance(value, ndb.Key):
+				elif isinstance(value, ndb.Key):
 					if fetch_keys:
 						value = value.get().to_dict()
 					else:
