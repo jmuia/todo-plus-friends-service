@@ -6,7 +6,7 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 import webapp2
 
-from utils import DEBUG
+from lib.utils import DEBUG
 
 
 
