@@ -13,9 +13,10 @@ import webapp2
 
 
 
-DEBUG   = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
-ORIGINS = '*' # change this if you want to lock access by domain
+DEBUG         = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
+ORIGINS       = '*' # verify the jws host instead of locking origin
 OPTIONS_CACHE = 365 * 24 * 60 * 60 # 1 year
+KIK_SESSION   = 'X-Kik-User-Session'
 
 
 
@@ -80,6 +81,8 @@ class BaseModel(ndb.Model):
 
 
 class BaseHandler(webapp2.RequestHandler):
+	kik_session = None
+
 	def initialize(self, *args, **kwargs):
 		value = super(BaseHandler, self).initialize(*args, **kwargs)
 		try:
@@ -99,48 +102,60 @@ class BaseHandler(webapp2.RequestHandler):
 			self.response.set_status(500)
 		self.response.write('An error occurred.')
 
-	def options(self, *args, **kwargs):
-		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
-		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-		self.response.headers['Cache-Control'               ] = 'public, max-age=%s' % OPTIONS_CACHE
-
-	def respond(self, data, content_type='application/json', cache_life=0):
-		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
-
+	def cache_header(self, cache_life=0):
 		if cache_life:
-			self.response.headers['Cache-Control'] = 'max-age=%s' % cache_life
+			self.response.headers['Cache-Control'] = 'public, max-age=%s' % cache_life
 		else:
 			self.response.headers['Cache-Control'] = 'no-cache'
+
+	def cors_headers(self):
+		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
+		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type, %s' % KIK_SESSION
+
+	def options(self, *args, **kwargs):
+		self.cors_headers()
+		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+		self.cache_header(OPTIONS_CACHE)
+
+	def respond(self, data, content_type='application/json', cache_life=0):
+		self.cors_headers()
+		self.cache_header(cache_life)
 
 		if content_type == 'application/json':
 			if isinstance(data, BaseModel):
 				data = data.to_dict()
 			elif isinstance(data, (list, tuple)) and len(data) > 0 and isinstance(data[0], BaseModel):
 				data = [e.to_dict() for e in data]
-			self.response.headers['Content-Type'] = 'application/json'
-			self.response.out.write( to_json(data, separators=(',',':')) )
-		else:
-			self.response.headers['Content-Type'] = content_type
-			self.response.out.write(data)
+			data = to_json(data, separators=(',',':'))
+
+		# Let me begin with an apology. The Access-Control-Expose-Headers header is
+		# not supported on most devices and prevents me from sending the session
+		# token in a header. Instead of poluting the body of the response I have
+		# decided to polute the Content-Type header with an extra parameter that
+		# the client can read (because it is a "simple" header). I apologise for the
+		# hackery that is below.
+		if self.kik_session:
+			content_type += '; kik-session=%s' % self.kik_session
+
+		self.response.headers['Content-Type'] = content_type
+		self.response.out.write(data)
 
 	def respond_error(self, code, message='', cache_life=0):
 		self.response.set_status(code)
-		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
-		if cache_life:
-			self.response.headers['Cache-Control'] = 'max-age=%s' % cache_life
-		else:
-			self.response.headers['Cache-Control'] = 'no-cache'
-		self.response.headers['Content-Type' ] = 'text/plain'
+		self.cors_headers()
+		self.cache_header(cache_life)
+		self.response.headers['Content-Type'] = 'text/plain'
 		self.response.out.write(message)
 
 
 
 class RESTHandler(BaseHandler):
-	Model = None
-	_read_only = []
+	Model       = None
+	_read_only  = []
+	username    = None
+	hostname    = None
+	jws_params  = None
+
 	def get_list(self):
 		return [e for e in self.Model.query().fetch() if self._can_do('read', e)]
 	def can_create(self, entity): return False
@@ -157,6 +172,22 @@ class RESTHandler(BaseHandler):
 			except:
 				return False
 
+	def initialize(self, *args, **kwargs):
+		value = super(RESTHandler, self).initialize(*args, **kwargs)
+		try:
+			session = self.request.headers.get(KIK_SESSION)
+			if self.request.method in ('POST', 'PUT', 'PATCH'):
+				jws = self.request.body
+				payload = None
+			else:
+				jws = self.params['jws']
+				payload = self.request.path
+			from lib.jws import get_verified_data
+			self.username, self.hostname, self.jws_params, self.kik_session = get_verified_data(jws, expected=payload, session=session)
+		except:
+			pass
+		return value
+
 	def _populate_entity(self, entity):
 		props = self.Model._include
 		if props is None:
@@ -169,9 +200,13 @@ class RESTHandler(BaseHandler):
 				props.remove(prop)
 		if 'id' in props:
 			props.remove('id')
+		if self.jws_params is not None:
+			params = self.jws_params
+		else:
+			params = self.body_params
 		for prop in props:
-			if prop in self.body_params:
-				value = self.body_params[prop]
+			if prop in params:
+				value = params[prop]
 				prop_field = getattr(self.Model, prop)
 				if isinstance(prop_field, ndb.DateTimeProperty):
 					if prop_field._repeated:
