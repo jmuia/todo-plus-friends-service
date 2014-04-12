@@ -137,7 +137,7 @@ class BaseHandler(webapp2.RequestHandler):
 
 class RESTHandler(BaseHandler):
 	Model = None
-	def can_list(self, entities): return False
+	def get_list(self): return [e for e in self.Model.query().fetch()]
 	def can_create(self, entity): return False
 	def can_read(self, entity): return False
 	def can_update(self, entity): return False
@@ -184,10 +184,11 @@ class RESTHandler(BaseHandler):
 
 	def get(self, entity_id):
 		if not entity_id:
-			entities = self.Model.query().fetch()
-			if not self._can_do('list', entities):
+			entities = self.get_list()
+			if entities is None:
 				self.respond_error(403, 'forbidden')
 			else:
+				entities = [e for e in entities if self._can_do('read', e)]
 				self.respond(entities)
 		else:
 			entity = self.Model.get_by_id( int(entity_id) )
