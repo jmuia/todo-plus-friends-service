@@ -60,17 +60,20 @@ class BaseModel(ndb.Model):
 			if key not in exclude and (include is None or key in include):
 				value = getattr(self, key)
 				if isinstance(value, datetime):
-					props[key] = int( mktime(value.utctimetuple()) ) * 1000
+					value = int( mktime(value.utctimetuple()) ) * 1000
 				elif isinstance(value, ndb.Key):
 					if fetch_keys:
 						value = value.get().to_dict()
 					else:
 						value = value.id()
-				elif isinstance(value, (list, tuple)) and len(value) > 0 and isinstance(value[0], ndb.Key):
-					if fetch_keys:
-						value = [e.to_dict() for e in ndb.get_multi(value)]
-					else:
-						value = [k.id() for k in value]
+				elif isinstance(value, (list, tuple)) and len(value) > 0:
+					if isinstance(value[0], datetime):
+						value = [int( mktime(v.utctimetuple()) ) * 1000 for v in value]
+					elif isinstance(value[0], ndb.Key):
+						if fetch_keys:
+							value = [e.to_dict() for e in ndb.get_multi(value)]
+						else:
+							value = [k.id() for k in value]
 				props[key] = value
 		return props
 
@@ -137,7 +140,9 @@ class BaseHandler(webapp2.RequestHandler):
 
 class RESTHandler(BaseHandler):
 	Model = None
-	def get_list(self): return [e for e in self.Model.query().fetch()]
+	_read_only = []
+	def get_list(self):
+		return [e for e in self.Model.query().fetch() if self._can_do('read', e)]
 	def can_create(self, entity): return False
 	def can_read(self, entity): return False
 	def can_update(self, entity): return False
@@ -156,10 +161,12 @@ class RESTHandler(BaseHandler):
 		props = self.Model._include
 		if props is None:
 			props = self.Model._properties.keys()
-		if self.Model._exclude:
-			for prop in self.Model._exclude:
-				if prop in props:
-					props.remove(prop)
+		for prop in self.Model._exclude:
+			if prop in props:
+				props.remove(prop)
+		for prop in self._read_only:
+			if prop in props:
+				props.remove(prop)
 		if 'id' in props:
 			props.remove('id')
 		for prop in props:
@@ -167,10 +174,16 @@ class RESTHandler(BaseHandler):
 				value = self.body_params[prop]
 				prop_field = getattr(self.Model, prop)
 				if isinstance(prop_field, ndb.DateTimeProperty):
-					try:
-						value = datetime.utcfromtimestamp( int(value/1000.0) )
-					except:
-						raise BadValueError('failed to parse datetime')
+					if prop_field._repeated:
+						try:
+							value = [datetime.utcfromtimestamp( int(v/1000.0) ) for v in value]
+						except:
+							raise BadValueError('failed to parse datetime')
+					else:
+						try:
+							value = datetime.utcfromtimestamp( int(value/1000.0) )
+						except:
+							raise BadValueError('failed to parse datetime')
 				elif isinstance(prop_field, ndb.KeyProperty):
 					if prop_field._repeated:
 						value = [ndb.Key(prop_field._kind, v) for v in value]
@@ -188,7 +201,6 @@ class RESTHandler(BaseHandler):
 			if entities is None:
 				self.respond_error(403, 'forbidden')
 			else:
-				entities = [e for e in entities if self._can_do('read', e)]
 				self.respond(entities)
 		else:
 			entity = self.Model.get_by_id( int(entity_id) )
