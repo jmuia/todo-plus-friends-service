@@ -15,7 +15,8 @@ from google.appengine.datastore     import datastore_stub_util
 from google.appengine.ext           import ndb, testbed
 from webtest                        import TestApp
 
-from app import app
+from lib.utils import KIK_JWS
+from app       import app
 
 
 
@@ -126,10 +127,10 @@ class TestBase(TestCase):
 			else:
 				payload = data
 			data = None
-			as_query = False
+			as_header = False
 		else:
 			payload = resource.split('?')[0]
-			as_query = True
+			as_header = True
 		now = int( mktime(datetime.utcnow().utctimetuple()) ) * 1000
 		jws_headers = json_stringify({
 			'alg'      : 'RS256'           ,
@@ -143,9 +144,8 @@ class TestBase(TestCase):
 		jws = '.'.join(p.encode('base64').strip().replace('=','') for p in [
 			jws_headers, payload, 'signature'
 		])
-		if as_query:
-			data = data or {}
-			data['jws'] = jws
+		if as_header:
+			headers[KIK_JWS] = jws
 		else:
 			headers['Content-Type'] = 'text/plain'
 			data = jws

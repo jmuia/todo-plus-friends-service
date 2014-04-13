@@ -2,6 +2,7 @@ var API = function (kik) {
 	var TIMEOUT   = 25 * 1000,
 			TOKEN_KEY = '__KIK_SESSION__';
 
+	// change the prefix to the host of your desire for testing
 	makeAPICall.prefix = 'https://myservice.appspot.com';
 	makeAPICall.auth = authenticatedAPICall
 	return makeAPICall;
@@ -14,14 +15,14 @@ var API = function (kik) {
 		}
 		method = method.toUpperCase();
 
-		if ( !kik.sign ) {
+		if (!kik || !kik.sign) {
 			if (callback) {
 				callback(null, 0);
 			}
 			return;
 		}
 
-		var payload, asQuery;
+		var payload, asHeader;
 		switch (method) {
 			case 'POST':
 			case 'PUT':
@@ -32,11 +33,11 @@ var API = function (kik) {
 					payload = data;
 				}
 				data = null;
-				asQuery = false;
+				asHeader = false;
 				break;
 			default:
 				payload = resource.split('?')[0];
-				asQuery = true;
+				asHeader = true;
 				break;
 		}
 
@@ -45,18 +46,19 @@ var API = function (kik) {
 				callback(null, 0);
 				return;
 			}
-			if (asQuery) {
-				data = data || {};
-				data.jws = jws;
+			var headers = {};
+			if (asHeader) {
+				headers['X-Kik-JWS'] = jws;
 			} else {
 				data = jws;
 			}
-			makeAPICall(method, resource, data, callback);
+			makeAPICall(method, resource, data, callback, headers);
 		});
 	}
 
-	function makeAPICall (method, resource, data, callback) {
+	function makeAPICall (method, resource, data, callback, headers) {
 		if (typeof data === 'function') {
+			headers  = callback;
 			callback = data;
 			data     = null;
 		}
@@ -126,6 +128,9 @@ var API = function (kik) {
 		if (contentType) {
 			xhr.setRequestHeader('Content-Type', contentType);
 		}
+		for (var key in headers) {
+			xhr.setRequestHeader(key, headers[key]);
+		}
 		setSession(xhr);
 		xhr.send(data);
 
@@ -164,4 +169,4 @@ var API = function (kik) {
 			}
 		} catch (err) {}
 	}
-}(kik);
+}(window.kik);

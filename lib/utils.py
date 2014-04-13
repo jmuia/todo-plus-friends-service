@@ -17,6 +17,7 @@ DEBUG         = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
 ORIGINS       = '*' # verify the jws host instead of locking origin
 OPTIONS_CACHE = 365 * 24 * 60 * 60 # 1 year
 KIK_SESSION   = 'X-Kik-User-Session'
+KIK_JWS       = 'X-Kik-JWS'
 
 
 
@@ -101,7 +102,7 @@ class BaseHandler(webapp2.RequestHandler):
 				jws = self.request.body
 				payload = None
 			else:
-				jws = self.params['jws']
+				jws = self.request.headers[KIK_JWS]
 				payload = self.request.path
 			from lib.jws import get_verified_data
 			self.username, self.hostname, self.auth_params, self.kik_session = get_verified_data(jws, expected=payload, session_token=session)
@@ -125,7 +126,7 @@ class BaseHandler(webapp2.RequestHandler):
 
 	def cors_headers(self):
 		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
-		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type, %s' % KIK_SESSION
+		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type, %s, %s' % (KIK_SESSION, KIK_JWS)
 
 	def options(self, *args, **kwargs):
 		self.cors_headers()
