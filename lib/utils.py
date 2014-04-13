@@ -81,6 +81,9 @@ class BaseModel(ndb.Model):
 
 
 class BaseHandler(webapp2.RequestHandler):
+	username    = None
+	hostname    = None
+	auth_params = None
 	kik_session = None
 
 	def initialize(self, *args, **kwargs):
@@ -92,6 +95,18 @@ class BaseHandler(webapp2.RequestHandler):
 		self.params = {}
 		self.params.update(self.request.params)
 		self.params.update(self.body_params)
+		try:
+			session = self.request.headers.get(KIK_SESSION)
+			if self.request.method in ('POST', 'PUT', 'PATCH'):
+				jws = self.request.body
+				payload = None
+			else:
+				jws = self.params['jws']
+				payload = self.request.path
+			from lib.jws import get_verified_data
+			self.username, self.hostname, self.auth_params, self.kik_session = get_verified_data(jws, expected=payload, session=session)
+		except:
+			pass
 		return value
 
 	def handle_exception(self, exception, debug):
@@ -152,9 +167,6 @@ class BaseHandler(webapp2.RequestHandler):
 class RESTHandler(BaseHandler):
 	Model       = None
 	_read_only  = []
-	username    = None
-	hostname    = None
-	jws_params  = None
 
 	def get_list(self):
 		return [e for e in self.Model.query().fetch() if self._can_do('read', e)]
@@ -172,22 +184,6 @@ class RESTHandler(BaseHandler):
 			except:
 				return False
 
-	def initialize(self, *args, **kwargs):
-		value = super(RESTHandler, self).initialize(*args, **kwargs)
-		try:
-			session = self.request.headers.get(KIK_SESSION)
-			if self.request.method in ('POST', 'PUT', 'PATCH'):
-				jws = self.request.body
-				payload = None
-			else:
-				jws = self.params['jws']
-				payload = self.request.path
-			from lib.jws import get_verified_data
-			self.username, self.hostname, self.jws_params, self.kik_session = get_verified_data(jws, expected=payload, session=session)
-		except:
-			pass
-		return value
-
 	def _populate_entity(self, entity):
 		props = self.Model._include
 		if props is None:
@@ -200,8 +196,8 @@ class RESTHandler(BaseHandler):
 				props.remove(prop)
 		if 'id' in props:
 			props.remove('id')
-		if self.jws_params is not None:
-			params = self.jws_params
+		if self.auth_params is not None:
+			params = self.auth_params
 		else:
 			params = self.body_params
 		for prop in props:

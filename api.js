@@ -135,7 +135,7 @@ var API = function (kik) {
 			}
 			done = true;
 
-			getSession(xhr);
+			storeSession(xhr);
 
 			var response;
 			try {
@@ -155,7 +155,7 @@ var API = function (kik) {
 		}
 	}
 
-	function parseSession(xhr) {
+	function storeSession(xhr) {
 		try {
 			var header       = xhr.getResponseHeader('Content-Type'),
 					sessionToken = /\bkik\-session\=(\S+)\b/.exec(header)[1];
