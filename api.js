@@ -7,16 +7,6 @@ var API = function (kik) {
 	return makeAPICall;
 
 
-	function getSession() {
-		return localStorage[TOKEN_KEY];
-	}
-	function parseSession(contentTypeHeader) {
-		var sessionToken = /\bkik\-session\=(\S+)\b/.exec(contentTypeHeader)[1];
-		if (sessionToken) {
-			localStorage[TOKEN_KEY] = sessionToken;
-		}
-	}
-
 	function authenticatedAPICall(method, resource, data, callback) {
 		if (typeof data === 'function') {
 			callback = data;
@@ -136,9 +126,7 @@ var API = function (kik) {
 		if (contentType) {
 			xhr.setRequestHeader('Content-Type', contentType);
 		}
-		if ( getSession() ) {
-			xhr.setRequestHeader('X-Kik-User-Session', getSession());
-		}
+		setSession(xhr);
 		xhr.send(data);
 
 		function xhrComplete (status) {
@@ -147,9 +135,7 @@ var API = function (kik) {
 			}
 			done = true;
 
-			try {
-				parseSession( xhr.getResponseHeader('Content-Type') );
-			} catch (err) {}
+			getSession(xhr);
 
 			var response;
 			try {
@@ -160,5 +146,22 @@ var API = function (kik) {
 				callback(response, status);
 			}
 		}
+	}
+
+	function setSession(xhr) {
+		var sessionToken = localStorage[TOKEN_KEY];
+		if (sessionToken) {
+			xhr.setRequestHeader('X-Kik-User-Session', sessionToken);
+		}
+	}
+
+	function parseSession(xhr) {
+		try {
+			var header       = xhr.getResponseHeader('Content-Type'),
+					sessionToken = /\bkik\-session\=(\S+)\b/.exec(header)[1];
+			if (sessionToken) {
+				localStorage[TOKEN_KEY] = sessionToken;
+			}
+		} catch (err) {}
 	}
 }(kik);
