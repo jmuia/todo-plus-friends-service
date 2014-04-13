@@ -7,8 +7,14 @@
 ### Run debug server
 
 ```sh
-make debug
+make
 # your debug server is now running at localhost:8080
+```
+
+Run tests:
+
+```sh
+make test
 ```
 
 ### API.js
