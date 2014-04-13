@@ -15,8 +15,10 @@ from model.session import Session
 
 
 VERIFY_URL   = 'https://auth.kik.com/verification/v1/check?'
-CHROME_USERS = [
+TEST_USERS = [
 	'kikteam',
+	'dan',
+	'mark',
 ]
 
 
@@ -35,11 +37,14 @@ def get_verified_data(jws, expected=None, session_token=None):
 	except:
 		data = None
 
-	session = ndb.Key(urlsafe=session_token).get()
+	try:
+		session = ndb.Key(urlsafe=session_token).get()
+	except Exception as e:
+		session = None
 	if session is None or not isinstance(session, Session) or session.username != username or session.hostname != hostname:
 		session       = None
 		session_token = None
-		if username not in CHROME_USERS:
+		if username not in TEST_USERS:
 			verify_jws(jws, username, hostname, (headers.get('kikDbg') and DEBUG))
 		elif not DEBUG:
 			raise Exception('chrome user detected')
@@ -49,6 +54,7 @@ def get_verified_data(jws, expected=None, session_token=None):
 			session_token = session.key.urlsafe()
 		except:
 			pass
+
 	return username, hostname, data, session_token
 
 def verify_jws(jws, username, hostname, debug=False):
@@ -71,9 +77,5 @@ def verify_jws(jws, username, hostname, debug=False):
 
 def get_jws_part(jws, index):
 	part = jws.split('.')[index]
-	mod  = len(part) % 4
-	if mod == 2:
-		part += '=='
-	elif mod == 3:
-		part += '='
+	part += '===='
 	return part.decode('base64')

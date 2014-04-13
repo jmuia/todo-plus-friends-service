@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 import logging
+from datetime import datetime
+from json     import dumps as json_stringify
 from os.path  import dirname
+from time     import mktime
 from unittest import TestCase
 
 from google.appengine.api           import apiproxy_stub, apiproxy_stub_map
@@ -44,6 +47,8 @@ class URLFetchServiceMock(apiproxy_stub.APIProxyStub):
 
 class TestBase(TestCase):
 	CUSTOM_URLFETCH = True
+	USERNAME        = 'kikteam'
+	HOSTNAME        = 'myservice.appspot.com'
 
 	def setUp(self):
 		root         = dirname('..')
@@ -101,6 +106,8 @@ class TestBase(TestCase):
 		if data and (type(data) is dict) and (method in ['post', 'put', 'patch']):
 			is_json = True
 
+		#TODO: data as query param for other requests
+
 		if is_json:
 			func = getattr(self.testapp, method.lower()+'_json')
 		else:
@@ -110,3 +117,36 @@ class TestBase(TestCase):
 			return func(resource, params=data, status=status, headers=headers)
 		else:
 			return func(resource, status=status, headers=headers)
+
+	def auth_api_call(self, method, resource, data=None, status=200, headers={}):
+		method = method.lower()
+		if method.lower() in ('put', 'post', 'patch'):
+			if data and isinstance(data, dict):
+				payload = json_stringify(data)
+			else:
+				payload = data
+			data = None
+			as_query = False
+		else:
+			payload = resource.split('?')[0]
+			as_query = True
+		now = int( mktime(datetime.utcnow().utctimetuple()) ) * 1000
+		jws_headers = json_stringify({
+			'alg'      : 'RS256'           ,
+			'kikUsr'   : self.USERNAME     ,
+			'exp'      : now + 1000*60*60*2,
+			'x5u'      : self.HOSTNAME     ,
+			'nbf'      : now - 1000*60*60  ,
+			'kikCrdDm' : self.HOSTNAME     ,
+			'kikDbg'   : True
+		})
+		jws = '.'.join(p.encode('base64').strip().replace('=','') for p in [
+			jws_headers, payload, 'signature'
+		])
+		if as_query:
+			data = data or {}
+			data['jws'] = jws
+		else:
+			headers['Content-Type'] = 'text/plain'
+			data = jws
+		return self.api_call(method, resource, data=data, status=status, headers=headers);

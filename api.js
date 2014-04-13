@@ -46,10 +46,10 @@ var API = function (kik) {
 				return;
 			}
 			if (asQuery) {
-				data = jws;
-			} else {
 				data = data || {};
 				data.jws = jws;
+			} else {
+				data = jws;
 			}
 			makeAPICall(method, resource, data, callback);
 		});

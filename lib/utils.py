@@ -104,7 +104,7 @@ class BaseHandler(webapp2.RequestHandler):
 				jws = self.params['jws']
 				payload = self.request.path
 			from lib.jws import get_verified_data
-			self.username, self.hostname, self.auth_params, self.kik_session = get_verified_data(jws, expected=payload, session=session)
+			self.username, self.hostname, self.auth_params, self.kik_session = get_verified_data(jws, expected=payload, session_token=session)
 		except:
 			pass
 		return value
