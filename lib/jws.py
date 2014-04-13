@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 from datetime import datetime, timedelta
 from json     import loads as json_parse
 from urllib   import urlencode
@@ -8,25 +9,15 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import ndb
 import webapp2
 
-from lib.utils import DEBUG
+from lib.utils     import DEBUG
+from model.session import Session
 
 
 
-GRACE_PERIOD = 300 # seconds
-ALGORITHMS   = {
-	'RS256' : 'SHA256withRSA',
-	'RS384' : 'SHA384withRSA',
-	'RS512' : 'SHA512withRSA',
-}
 VERIFY_URL   = 'https://auth.kik.com/verification/v1/check?'
-
-
-
-#TODO: cron to cleanup old sessions
-class Session(ndb.Model):
-	created_at = ndb.DateTimeProperty(auto_now_add=True)
-	username = ndb.StringProperty(indexed=False)
-	hostname = ndb.StringProperty(indexed=False)
+CHROME_USERS = [
+	'kikteam',
+]
 
 
 
@@ -35,10 +26,6 @@ def get_verified_data(jws, expected=None, session_token=None):
 	username = headers['kikUsr'  ].lower()
 	hostname = headers['kikCrdDm'].split('/')[0]
 	payload  = get_jws_part(jws, 1)
-	if headers.get('kikDbg') and DEBUG:
-		debug = True
-	else:
-		debug = False
 
 	if expected is not None and payload != expected:
 		raise Exception('payload does not match expected value')
@@ -52,10 +39,10 @@ def get_verified_data(jws, expected=None, session_token=None):
 	if session is None or not isinstance(session, Session) or session.username != username or session.hostname != hostname:
 		session       = None
 		session_token = None
-		try:
-			verify_jws(jws, username, hostname, debug)
-		except:
-			return None, None, None, None
+		if username not in CHROME_USERS:
+			verify_jws(jws, username, hostname, (headers.get('kikDbg') and DEBUG))
+		elif not DEBUG:
+			raise Exception('chrome user detected')
 		try:
 			session = Session(username=username, hostname=hostname)
 			session.put()

@@ -1,23 +1,84 @@
-//TODO: auth support for requests
 /*
 	Usage (check out api/example.py):
 
-	API('post', 'example', { value: 'foobar' }, function (data) {
+	API('post', '/example/', { value: 'foobar' }, function (data) {
 		if (data.example_id) {
-			API('get', 'example/'+data.example_id, function (example) {
+			API('get', '/example/'+data.example_id, function (example) {
 				console.log(example.value);
 			});
 		}
 	});
 
 	To target a specific service URL:
-	API.prefix = 'https://someotherservice.com/';
+	API.prefix = 'https://someotherservice.com';
 */
 
-var API = function () {
-	var TIMEOUT = 25 * 1000;
-	makeAPICall.prefix = 'https://myservice.appspot.com/';
+var API = function (kik) {
+	var TIMEOUT   = 25 * 1000,
+			TOKEN_KEY = '__KIK_SESSION__';
+
+	makeAPICall.prefix = 'https://myservice.appspot.com';
+	makeAPICall.auth = authenticatedAPICall
 	return makeAPICall;
+
+
+	function getSession() {
+		return localStorage[TOKEN_KEY];
+	}
+	function parseSession(contentTypeHeader) {
+		var sessionToken = /\bkik\-session\=(\S+)\b/.exec(contentTypeHeader)[1];
+		if (sessionToken) {
+			localStorage[TOKEN_KEY] = sessionToken;
+		}
+	}
+
+	function authenticatedAPICall(method, resource, data, callback) {
+		if (typeof data === 'function') {
+			callback = data;
+			data     = null;
+		}
+		method = method.toUpperCase();
+
+		if ( !kik.sign ) {
+			if (callback) {
+				callback(null, 0);
+			}
+			return;
+		}
+
+		var payload, asQuery;
+		switch (method) {
+			case 'POST':
+			case 'PUT':
+			case 'PATCH':
+				if (data && (typeof data === 'object')) {
+					payload = JSON.stringify(data);
+				} else {
+					payload = data;
+				}
+				data = null;
+				asQuery = false;
+				break;
+			default:
+				payload = resource.split('?')[0];
+				asQuery = true;
+				break;
+		}
+
+		kik.sign(payload, function (jws) {
+			if ( !jws ) {
+				callback(null, 0);
+				return;
+			}
+			if (asQuery) {
+				data = jws;
+			} else {
+				data = data || {};
+				data.jws = jws;
+			}
+			makeAPICall(method, resource, data, callback);
+		});
+	}
 
 	function makeAPICall (method, resource, data, callback) {
 		if (typeof data === 'function') {
@@ -90,6 +151,9 @@ var API = function () {
 		if (contentType) {
 			xhr.setRequestHeader('Content-Type', contentType);
 		}
+		if ( getSession() ) {
+			xhr.setRequestHeader('X-Kik-User-Session', getSession());
+		}
 		xhr.send(data);
 
 		function xhrComplete (status) {
@@ -97,6 +161,10 @@ var API = function () {
 				return;
 			}
 			done = true;
+
+			try {
+				parseSession( xhr.getResponseHeader('Content-Type') );
+			} catch (err) {}
 
 			var response;
 			try {
@@ -108,4 +176,4 @@ var API = function () {
 			}
 		}
 	}
-}();
+}(kik);
