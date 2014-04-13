@@ -1,18 +1,3 @@
-/*
-	Usage (check out api/example.py):
-
-	API('post', '/example/', { value: 'foobar' }, function (data) {
-		if (data.example_id) {
-			API('get', '/example/'+data.example_id, function (example) {
-				console.log(example.value);
-			});
-		}
-	});
-
-	To target a specific service URL:
-	API.prefix = 'https://someotherservice.com';
-*/
-
 var API = function (kik) {
 	var TIMEOUT   = 25 * 1000,
 			TOKEN_KEY = '__KIK_SESSION__';

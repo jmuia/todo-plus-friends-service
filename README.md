@@ -31,3 +31,13 @@ API('POST', '/example/', { value: 'data' },
     }
 );
 ```
+
+To make an authenticated API call:
+
+```js
+API.auth('POST', '/example/', { value: 'data' },
+    function (response, status) {
+        // same as above
+    }
+);
+```
