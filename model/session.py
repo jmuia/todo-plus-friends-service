@@ -6,7 +6,7 @@ from google.appengine.ext import ndb
 
 from lib.utils import BaseModel
 
-MAX_AGE = timedelta(days=7)
+MAX_AGE = timedelta(hours=6)
 
 
 
