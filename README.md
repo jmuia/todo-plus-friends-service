@@ -24,7 +24,7 @@ Simply include it in your webapp and you will be able to make API calls to this 
 To make an API call in your JavaScript:
 
 ```js
-API('POST', 'example', { value: 'data' },
+API('POST', '/example/', { value: 'data' },
     function (response, status) {
         // "response" is JSON output from the service
         // "status" is the HTTP status code returned by the API call
