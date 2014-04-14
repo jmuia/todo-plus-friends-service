@@ -229,7 +229,10 @@ class RESTHandler(BaseHandler):
 
 	def get(self, entity_id):
 		if not entity_id:
-			entities = self.get_list()
+			if self.get_list:
+				entities = self.get_list()
+			else:
+				entities = None
 			if entities is None:
 				self.respond_error(403, 'forbidden')
 			else:
