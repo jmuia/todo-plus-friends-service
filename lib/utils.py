@@ -81,6 +81,8 @@ class BaseModel(ndb.Model):
 
 
 class BaseHandler(webapp2.RequestHandler):
+	Model       = None
+	_read_only  = []
 	username    = None
 	hostname    = None
 	auth_params = None
@@ -108,6 +110,48 @@ class BaseHandler(webapp2.RequestHandler):
 		except:
 			pass
 		return value
+
+	def _populate_entity(self, entity):
+		props = self.Model._include
+		if props is None:
+			props = self.Model._properties.keys()
+		for prop in self.Model._exclude:
+			if prop in props:
+				props.remove(prop)
+		for prop in self._read_only:
+			if prop in props:
+				props.remove(prop)
+		if 'id' in props:
+			props.remove('id')
+		if self.auth_params is not None:
+			params = self.auth_params
+		else:
+			params = self.body_params
+		for prop in props:
+			if prop in params:
+				value = params[prop]
+				prop_field = getattr(self.Model, prop)
+				if isinstance(prop_field, ndb.DateTimeProperty):
+					if prop_field._repeated:
+						try:
+							value = [datetime.utcfromtimestamp( int(v/1000.0) ) for v in value]
+						except:
+							raise BadValueError('failed to parse datetime')
+					else:
+						try:
+							value = datetime.utcfromtimestamp( int(value/1000.0) )
+						except:
+							raise BadValueError('failed to parse datetime')
+				elif isinstance(prop_field, ndb.KeyProperty):
+					if prop_field._repeated:
+						value = [ndb.Key(prop_field._kind, v) for v in value]
+						if None in ndb.get_multi(value):
+							raise BadValueError('stored key must reference an existing entity')
+					else:
+						value = ndb.Key(prop_field._kind, value)
+						if value.get() is None:
+							raise BadValueError('stored key must reference an existing entity')
+				entity.populate(**{ prop: value })
 
 	def handle_exception(self, exception, debug):
 		logging.exception(exception)
@@ -165,9 +209,6 @@ class BaseHandler(webapp2.RequestHandler):
 
 
 class RESTHandler(BaseHandler):
-	Model       = None
-	_read_only  = []
-
 	def get_list(self):
 		return [e for e in self.Model.query().fetch() if self._can_do('read', e)]
 	def can_create(self, entity): return False
@@ -183,48 +224,6 @@ class RESTHandler(BaseHandler):
 				return func(entity) or False
 			except:
 				return False
-
-	def _populate_entity(self, entity):
-		props = self.Model._include
-		if props is None:
-			props = self.Model._properties.keys()
-		for prop in self.Model._exclude:
-			if prop in props:
-				props.remove(prop)
-		for prop in self._read_only:
-			if prop in props:
-				props.remove(prop)
-		if 'id' in props:
-			props.remove('id')
-		if self.auth_params is not None:
-			params = self.auth_params
-		else:
-			params = self.body_params
-		for prop in props:
-			if prop in params:
-				value = params[prop]
-				prop_field = getattr(self.Model, prop)
-				if isinstance(prop_field, ndb.DateTimeProperty):
-					if prop_field._repeated:
-						try:
-							value = [datetime.utcfromtimestamp( int(v/1000.0) ) for v in value]
-						except:
-							raise BadValueError('failed to parse datetime')
-					else:
-						try:
-							value = datetime.utcfromtimestamp( int(value/1000.0) )
-						except:
-							raise BadValueError('failed to parse datetime')
-				elif isinstance(prop_field, ndb.KeyProperty):
-					if prop_field._repeated:
-						value = [ndb.Key(prop_field._kind, v) for v in value]
-						if None in ndb.get_multi(value):
-							raise BadValueError('stored key must reference an existing entity')
-					else:
-						value = ndb.Key(prop_field._kind, value)
-						if value.get() is None:
-							raise BadValueError('stored key must reference an existing entity')
-				entity.populate(**{ prop: value })
 
 	def get(self, entity_id):
 		if not entity_id:
