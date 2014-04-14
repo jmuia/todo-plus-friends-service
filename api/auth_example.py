@@ -7,7 +7,7 @@ from model.auth_example import AuthExample
 
 class AuthExampleHandler(RESTHandler):
 	Model = AuthExample
-	def can_do(self, entity):
+	def can_do(self, entity, *args):
 		if entity.username != self.username:
 			return False
 		elif entity.hostname != self.hostname:

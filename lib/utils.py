@@ -215,13 +215,13 @@ class RESTHandler(BaseHandler):
 	def can_read(self, entity): return False
 	def can_update(self, entity): return False
 	def can_delete(self, entity): return False
-	def _can_do(self, action, entity):
+	def _can_do(self, action, *args):
 		func = getattr(self, 'can_'+action)
 		if isinstance(func, bool):
 			return func
 		else:
 			try:
-				return func(entity) or False
+				return func(*args) or False
 			except:
 				return False
 
@@ -250,13 +250,16 @@ class RESTHandler(BaseHandler):
 			existing_entity = self.Model.get_by_id( int(entity_id) )
 			if existing_entity is None:
 				self.respond_error(404, 'not found')
+				return
+		else:
+			existing_entity = None
 		if entity_id:
 			entity = self.Model(id=int(entity_id))
 		else:
 			entity = self.Model()
 		self._populate_entity(entity)
 		if entity_id:
-			if not self._can_do('update', entity):
+			if not self._can_do('update', entity, existing_entity):
 				self.respond_error(403, 'forbidden')
 			else:
 				entity.put()
@@ -276,7 +279,7 @@ class RESTHandler(BaseHandler):
 		entity = self.Model(id=int(entity_id))
 		self._populate_entity(entity)
 		if existing_entity:
-			if not self._can_do('update', entity):
+			if not self._can_do('update', entity, existing_entity):
 				self.respond_error(403, 'forbidden')
 			else:
 				entity.put()
@@ -292,12 +295,15 @@ class RESTHandler(BaseHandler):
 		if not entity_id:
 			self.respond_error(405, 'method not allowed')
 			return
-		entity = self.Model.get_by_id( int(entity_id) )
-		if entity is None:
+		existing_entity = self.Model.get_by_id( int(entity_id) )
+		if existing_entity is None:
 			self.respond_error(404, 'not found')
 			return
+		entity = self.Model(key=existing_entity.key)
+		for prop, _ in self.Model._properties.iteritems():
+			entity.populate(**{ prop: getattr(existing_entity, prop) })
 		self._populate_entity(entity)
-		if not self._can_do('update', entity):
+		if not self._can_do('update', entity, existing_entity):
 			self.respond_error(403, 'forbidden')
 		else:
 			entity.put()
