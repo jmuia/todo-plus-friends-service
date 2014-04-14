@@ -10,7 +10,6 @@ from unittest import TestCase
 from google.appengine.api           import apiproxy_stub, apiproxy_stub_map
 from google.appengine.api.blobstore import blobstore_stub, file_blob_storage
 from google.appengine.api.files     import file_service_stub
-from google.appengine.api.images    import images_stub
 from google.appengine.datastore     import datastore_stub_util
 from google.appengine.ext           import ndb, testbed
 from webtest                        import TestApp
@@ -65,7 +64,11 @@ class TestBase(TestCase):
 		self.blob_storage = file_blob_storage.FileBlobStorage('/tmp/testbed.blobstore', testbed.DEFAULT_APP_ID)
 		self.testbed._register_stub('blobstore', blobstore_stub.BlobstoreServiceStub(self.blob_storage))
 		self.testbed._register_stub('file', file_service_stub.FileServiceStub(self.blob_storage))
-		self.testbed._register_stub('images', images_stub.ImagesServiceStub())
+		try:
+			from google.appengine.api.images import images_stub
+			self.testbed._register_stub('images', images_stub.ImagesServiceStub())
+		except:
+			pass
 		if self.CUSTOM_URLFETCH:
 			self._url_fetch_mock = URLFetchServiceMock()
 			apiproxy_stub_map.apiproxy.RegisterStub('urlfetch', self._url_fetch_mock)
