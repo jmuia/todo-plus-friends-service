@@ -33,7 +33,6 @@ def admin_only(func):
 			self.redirect( users.create_login_url('/') )
 		else:
 			return func(self, *args, **kwargs)
-		return func(self, *args, **kwargs)
 	return wrapper
 
 def is_admin(*args, **kwargs):
