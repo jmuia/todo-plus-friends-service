@@ -28,7 +28,7 @@ webapp2.WSGIApplication.allowed_methods = allowed_methods.union(('PATCH',))
 
 def admin_only(func):
 	def wrapper(self, *args, **kwargs):
-		if not is_admin():
+		if not is_admin(self, *args, **kwargs):
 			logging.info('user must be admin')
 			self.redirect( users.create_login_url('/') )
 		else:
@@ -36,6 +36,11 @@ def admin_only(func):
 	return wrapper
 
 def is_admin(*args, **kwargs):
+	if len(args) > 0 and isinstance(args[0],webapp2.RequestHandler):
+		if args[0].request.headers.get('X-AppEngine-Cron'):
+			return True
+		elif args[0].request.headers.get('X-AppEngine-QueueName'):
+			return True
 	return DEBUG or users.is_current_user_admin()
 
 
