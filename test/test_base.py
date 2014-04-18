@@ -32,25 +32,24 @@ class URLFetchServiceMock(apiproxy_stub.APIProxyStub):
 		self._headers = headers
 		self._content = content
 
-	def route_response(self, url, method, status, headers, content):
-		self._routes[url] = {
-			'method'  : method,
+	def route_response(self, method, url, status, headers, content):
+		self._routes[(method, url)] = {
 			'status'  : status,
 			'headers' : headers,
 			'content' : content,
 		}
 
 	def _Dynamic_Fetch(self, request, response):
-		method = {
+		request_method = {
 			request.GET     : 'GET'     ,
 			request.POST    : 'POST'    ,
 			request.PUT     : 'PUT'     ,
 			request.PATCH   : 'PATCH'   ,
 			request.DELETE  : 'DELETE'  ,
 		}[request.method()]
-		for path, d in self._routes.items():
-			if request.url().startswith(path) and d['method'].upper() == method:
-				data = d
+		for method, path in self._routes:
+			if request.url().startswith(path) and method.upper() == request_method:
+				data = self._routes[(method, path)]
 				break
 		else:
 			data = {
