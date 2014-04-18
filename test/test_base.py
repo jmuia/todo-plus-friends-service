@@ -32,16 +32,24 @@ class URLFetchServiceMock(apiproxy_stub.APIProxyStub):
 		self._headers = headers
 		self._content = content
 
-	def route_response(self, url, status, headers, content):
+	def route_response(self, url, method, status, headers, content):
 		self._routes[url] = {
+			'method'  : method,
 			'status'  : status,
 			'headers' : headers,
 			'content' : content,
 		}
 
 	def _Dynamic_Fetch(self, request, response):
+		method = {
+			request.GET     : 'GET'     ,
+			request.POST    : 'POST'    ,
+			request.PUT     : 'PUT'     ,
+			request.PATCH   : 'PATCH'   ,
+			request.DELETE  : 'DELETE'  ,
+		}[request.method()]
 		for path, d in self._routes.items():
-			if request.url().startswith(path):
+			if request.url().startswith(path) and d['method'].upper() == method:
 				data = d
 				break
 		else:
@@ -102,10 +110,10 @@ class TestBase(TestCase):
 			raise Exception('url fetch not setup, set CUSTOM_URLFETCH=True')
 		self._url_fetch_mock.set_response(status, headers, content)
 
-	def route_urlfetch_response(self, url, status=200, headers={}, content=''):
+	def route_urlfetch_response(self, method, url, status=200, headers={}, content=''):
 		if not self.CUSTOM_URLFETCH:
 			raise Exception('url fetch not setup, set CUSTOM_URLFETCH=True')
-		self._url_fetch_mock.route_response(url, status, headers, content)
+		self._url_fetch_mock.route_response(method, url, status, headers, content)
 
 	def tearDown(self):
 		self.testbed.deactivate()
