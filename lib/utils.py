@@ -175,6 +175,7 @@ class BaseHandler(webapp2.RequestHandler):
 	def cors_headers(self):
 		self.response.headers['Access-Control-Allow-Origin' ] = ORIGINS
 		self.response.headers['Access-Control-Allow-Headers'] = 'Content-Type, %s, %s' % (KIK_SESSION, KIK_JWS)
+		self.response.headers['Access-Control-Max-Age'      ] = str(OPTIONS_CACHE)
 
 	def options(self, *args, **kwargs):
 		self.cors_headers()
