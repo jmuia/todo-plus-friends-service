@@ -181,9 +181,15 @@ class BaseHandler(webapp2.RequestHandler):
 		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 		self.cache_header(OPTIONS_CACHE)
 
-	def respond(self, data, content_type='application/json', cache_life=0):
+	def respond(self, data, content_type='application/json', cache_life=0, headers={}):
 		self.cors_headers()
 		self.cache_header(cache_life)
+
+		for header, value in headers.items():
+			if header == 'Content-Type':
+				content_type = value
+			else:
+				self.response.headers[header] = value
 
 		if content_type == 'application/json':
 			if isinstance(data, BaseModel):
@@ -204,11 +210,14 @@ class BaseHandler(webapp2.RequestHandler):
 		self.response.headers['Content-Type'] = content_type
 		self.response.out.write(data)
 
-	def respond_error(self, code, message='', cache_life=0):
+	def respond_error(self, code, message='', cache_life=0, headers={}):
 		self.response.set_status(code)
 		self.cors_headers()
 		self.cache_header(cache_life)
-		self.response.headers['Content-Type'] = 'text/plain'
+		for header, value in headers.items():
+			self.response.headers[header] = value
+		if 'Content-Type' not in headers:
+			self.response.headers['Content-Type'] = 'text/plain'
 		self.response.out.write(message)
 
 
