@@ -26,7 +26,7 @@ TEST_USERS = [
 def get_verified_data(jws, expected=None, session_token=None):
 	headers = json_parse(get_jws_part(jws, 0))
 	username = headers['kikUsr'  ].lower()
-	hostname = headers['kikCrdDm'].split('/')[0]
+	hostname = headers['kikCrdDm'].split('/')[0].lower()
 	payload  = get_jws_part(jws, 1)
 
 	if expected is not None and payload != expected:
