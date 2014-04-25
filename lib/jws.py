@@ -25,7 +25,8 @@ TEST_USERS = [
 
 def get_verified_data(jws, expected=None, session_token=None):
 	headers = json_parse(get_jws_part(jws, 0))
-	username = headers['kikUsr'  ].lower()
+	raw_username = headers['kikUsr']
+	username = raw_username.lower()
 	hostname = headers['kikCrdDm'].split('/')[0].lower()
 	payload  = get_jws_part(jws, 1)
 
@@ -46,7 +47,7 @@ def get_verified_data(jws, expected=None, session_token=None):
 		session       = None
 		session_token = None
 		if username not in TEST_USERS:
-			verify_jws(jws, username, hostname, (headers.get('kikDbg') and DEBUG))
+			verify_jws(jws, raw_username, hostname, (headers.get('kikDbg') and DEBUG))
 		elif not DEBUG:
 			logging.info('jws, chrome user detected')
 			raise Exception('chrome user detected')
