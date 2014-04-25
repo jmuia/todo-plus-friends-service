@@ -30,6 +30,7 @@ def get_verified_data(jws, expected=None, session_token=None):
 	payload  = get_jws_part(jws, 1)
 
 	if expected is not None and payload != expected:
+		logging.info('jws, payload does not match expected value')
 		raise Exception('payload does not match expected value')
 
 	try:
@@ -47,6 +48,7 @@ def get_verified_data(jws, expected=None, session_token=None):
 		if username not in TEST_USERS:
 			verify_jws(jws, username, hostname, (headers.get('kikDbg') and DEBUG))
 		elif not DEBUG:
+			logging.info('jws, chrome user detected')
 			raise Exception('chrome user detected')
 		try:
 			session = Session(username=username, hostname=hostname)
@@ -73,6 +75,7 @@ def verify_jws(jws, username, hostname, debug=False):
 		allow_truncated      = True
 	)
 	if result.status_code != 200:
+		logging.info('jws, verification failed, status=%s' % result.status_code)
 		raise Exception('verification failed, status=%s' % result.status_code)
 
 def get_jws_part(jws, index):
