@@ -6,6 +6,7 @@ from json     import dumps as to_json, loads as from_json
 from os       import environ
 from time     import mktime
 
+from google.appengine.api                  import users
 from google.appengine.api.datastore_errors import BadValueError
 from google.appengine.api.validation       import ValidationError
 from google.appengine.ext                  import ndb
