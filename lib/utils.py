@@ -44,6 +44,15 @@ def is_admin(*args, **kwargs):
 			return True
 	return DEBUG or users.is_current_user_admin()
 
+def future_iterator(futures):
+	while futures:
+		if len(futures) == 1:
+			future = futures[0]
+		else:
+			future = ndb.Future.wait_any(futures)
+		futures.remove(future)
+		yield future
+
 
 
 class BaseModel(ndb.Model):
