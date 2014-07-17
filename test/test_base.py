@@ -104,6 +104,9 @@ class TestBase(TestCase):
 		self.taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
 		ndb.get_context().set_cache_policy(lambda key: False)
 
+	def tearDown(self):
+		self.testbed.deactivate()
+
 	def set_urlfetch_response(self, status=200, headers={}, content=''):
 		if not self.CUSTOM_URLFETCH:
 			raise Exception('url fetch not setup, set CUSTOM_URLFETCH=True')
@@ -113,9 +116,6 @@ class TestBase(TestCase):
 		if not self.CUSTOM_URLFETCH:
 			raise Exception('url fetch not setup, set CUSTOM_URLFETCH=True')
 		self._url_fetch_mock.route_response(method, url, status, headers, content)
-
-	def tearDown(self):
-		self.testbed.deactivate()
 
 	def get_tasks(self, queue='default'):
 		return self.taskqueue_stub.GetTasks(queue)
