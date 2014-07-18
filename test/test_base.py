@@ -126,13 +126,17 @@ class TestBase(TestCase):
 		self.taskqueue_stub.FlushQueue(queue)
 		for task in tasks:
 			params = task['body'].decode('base64')
+			headers = dict(task['headers'])
+			del headers['Content-Length']
 			try:
-				self.testapp.post(task['url'], params)
+				self.testapp.post(task['url'], params, headers=headers)
 			except:
 				retries.append(task)
 		for task in retries:
 			params = task['body'].decode('base64')
-			self.testapp.post(task['url'], params)
+			headers = dict(task['headers'])
+			del headers['Content-Length']
+			self.testapp.post(task['url'], params, headers=headers)
 
 	def api_call(self, method, resource, data=None, status=200, headers={}):
 		method  = method.lower()
