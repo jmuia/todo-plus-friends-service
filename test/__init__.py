@@ -9,7 +9,7 @@ os.environ['SERVER_SOFTWARE'] = 'Development'
 import subprocess
 import tempfile
 
-SDK_GUESSES=['/usr/local/google_appengine']
+SDK_GUESSES=['/usr/local/google_appengine', '/Program Files (x86)/Google/google_appengine']
 with tempfile.NamedTemporaryFile() as f:
 	f.write('''
 		bin_path="`which dev_appserver.py`"
@@ -25,7 +25,10 @@ with tempfile.NamedTemporaryFile() as f:
 		fi
 	''')
 	f.flush()
-	sdk_path = subprocess.check_output(['/bin/bash', f.name]).strip()
+	try:
+		sdk_path = subprocess.check_output(['/bin/bash', f.name]).strip()
+	except:
+		sdk_path = None
 	if sdk_path:
 		SDK_GUESSES.append(sdk_path)
 
