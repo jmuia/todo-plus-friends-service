@@ -73,7 +73,6 @@ def verify_jws(jws, username, hostname, debug=False):
 		follow_redirects     = True   ,
 		method               = 'POST' ,
 		payload              = jws    ,
-		allow_truncated      = True
 	)
 	if result.status_code != 200:
 		logging.info('jws, verification failed, status=%s' % result.status_code)
