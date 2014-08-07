@@ -70,7 +70,7 @@ class BaseModel(ndb.Model):
 			fetch_keys = self._fetch_keys
 		exclude.extend(self._exclude)
 		props = {}
-		if 'id' not in exclude and (include is None or 'id' in include):
+		if 'id' not in exclude and (include is None or 'id' in include) and self.key:
 			props['id'] = self.key.id()
 		for key, prop in self._properties.iteritems():
 			if key not in exclude and (include is None or key in include):
