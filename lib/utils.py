@@ -12,6 +12,8 @@ from google.appengine.api.validation       import ValidationError
 from google.appengine.ext                  import ndb
 import webapp2
 
+import lib.mixpanel as mixpanel
+
 
 
 DEBUG         = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
@@ -175,6 +177,7 @@ class BaseHandler(webapp2.RequestHandler):
 		else:
 			self.response.set_status(500)
 		self.response.write('An error occurred.')
+		mixpanel.flush()
 
 	def cache_header(self, cache_life=0):
 		if cache_life:
@@ -220,6 +223,7 @@ class BaseHandler(webapp2.RequestHandler):
 
 		self.response.headers['Content-Type'] = content_type
 		self.response.out.write(data)
+		mixpanel.flush()
 
 	def respond_error(self, code, message='', cache_life=0, headers={}):
 		self.response.set_status(code)
@@ -230,6 +234,7 @@ class BaseHandler(webapp2.RequestHandler):
 		if 'Content-Type' not in headers:
 			self.response.headers['Content-Type'] = 'text/plain'
 		self.response.out.write(message)
+		mixpanel.flush()
 
 
 

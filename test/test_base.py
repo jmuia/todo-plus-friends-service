@@ -14,6 +14,7 @@ from google.appengine.datastore     import datastore_stub_util
 from google.appengine.ext           import ndb, testbed
 from webtest                        import TestApp
 
+import lib.mixpanel as mixpanel
 from lib.utils import KIK_JWS
 from app       import app
 
@@ -103,6 +104,8 @@ class TestBase(TestCase):
 			self.testbed.init_urlfetch_stub()
 		self.taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
 		ndb.get_context().set_cache_policy(lambda key: False)
+		mixpanel.DONT_FLUSH_QUEUE = True
+		mixpanel.clear()
 
 	def tearDown(self):
 		self.testbed.deactivate()
