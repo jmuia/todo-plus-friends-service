@@ -1,16 +1,20 @@
 import logging
 from base64 import b64encode
 from json   import dumps as json_stringify
+from math   import ceil
 from Queue  import Queue, Empty as EmptyQueueException, Full as FullQueueException
+from time   import time
 
 from google.appengine.api import urlfetch
 
-MiXPANEL_TOKEN   = 'PUT_YOUR_TOKEN_HERE'
-API_URL          = 'http://api.mixpanel.com/track/'
-MAX_BATCH_SIZE   = 50
-DONT_FLUSH_QUEUE = False
+MiXPANEL_TOKEN      = 'PUT_YOUR_TOKEN_HERE'
+API_URL             = 'http://api.mixpanel.com/track/'
+MAX_BATCH_SIZE      = 50
+SMART_FLUSH_TIMEOUT = 5 # seconds
+DONT_FLUSH_QUEUE    = False
 
-queue = Queue()
+queue      = Queue()
+last_flush = None
 
 
 
@@ -38,16 +42,25 @@ def track(distinct_id, event_name, properties=None):
 		'event'      : event_name,
 		'properties' : properties,
 	}
+	if not last_flush:
+		last_flush = time()
 	try:
 		queue.put_nowait(event)
 	except FullQueueException:
 		logging.error('mixpanel queue is full, failed to log event=%s' % json_stringify(event))
 
-def flush():
+def smart_flush():
+	size = queue.qsize()
+	if size > 0 and (size >= MAX_BATCH_SIZE or (last_flush and time()-last_flush >= SMART_FLUSH_TIMEOUT)):
+		flush(max_batches=ceil(float(size)/MAX_BATCH_SIZE))
+
+def flush(max_batches=10):
+	last_flush = time()
+
 	if DONT_FLUSH_QUEUE:
 		return
 
-	size = queue.qsize()
+	size = min(queue.qsize(), max_batches*MAX_BATCH_SIZE)
 	if not size:
 		return
 
@@ -62,7 +75,7 @@ def flush():
 		return
 
 	# Do not send metrics events in debug mode
-	from utils import DEBUG
+	from lib.utils import DEBUG
 	if DEBUG:
 		return
 
