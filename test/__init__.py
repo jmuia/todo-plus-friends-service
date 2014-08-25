@@ -6,31 +6,13 @@ import sys
 os.environ['SERVER_SOFTWARE'] = 'Development'
 
 
-import subprocess
-import tempfile
+from distutils.spawn import find_executable
+from os.path         import realpath, dirname
 
 SDK_GUESSES=['/usr/local/google_appengine', '/Program Files (x86)/Google/google_appengine']
-with tempfile.NamedTemporaryFile() as f:
-	f.write('''
-		bin_path="`which dev_appserver.py`"
-		if [ -n "${bin_path}" ] ; then
-			real_path="`readlink ${bin_path}`"
-			if [ "`echo ${real_path} | cut -c1`" = "/" ] ; then
-				abs_path="${real_path}"
-			else
-				abs_path="`dirname ${bin_path}`/${real_path}"
-			fi
-			dir_path="`dirname ${abs_path}`"
-			echo "${dir_path}"
-		fi
-	''')
-	f.flush()
-	try:
-		sdk_path = subprocess.check_output(['/bin/bash', f.name]).strip()
-	except:
-		sdk_path = None
-	if sdk_path:
-		SDK_GUESSES.append(sdk_path)
+path = find_executable('dev_appserver.py')
+if path:
+	SDK_GUESSES.append(dirname(realpath(path)))
 
 sdk_path = next((guess for guess in SDK_GUESSES if os.path.isdir(guess)), None)
 if sdk_path is None:
