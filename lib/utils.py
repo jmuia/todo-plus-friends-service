@@ -76,23 +76,24 @@ class BaseModel(ndb.Model):
 			props['id'] = self.key.id()
 		for key, prop in self._properties.iteritems():
 			if key not in exclude and (include is None or key in include):
-				value = getattr(self, key)
-				if isinstance(value, datetime):
-					value = int( mktime(value.utctimetuple()) ) * 1000
-				elif isinstance(value, ndb.Key):
-					if fetch_keys:
-						value = value.get().to_dict()
-					else:
-						value = value.id()
-				elif isinstance(value, (list, tuple)) and len(value) > 0:
-					if isinstance(value[0], datetime):
-						value = [int( mktime(v.utctimetuple()) ) * 1000 for v in value]
-					elif isinstance(value[0], ndb.Key):
+				if hasattr(self, key):
+					value = getattr(self, key)
+					if isinstance(value, datetime):
+						value = int( mktime(value.utctimetuple()) ) * 1000
+					elif isinstance(value, ndb.Key):
 						if fetch_keys:
-							value = [e.to_dict() for e in ndb.get_multi(value)]
+							value = value.get().to_dict()
 						else:
-							value = [k.id() for k in value]
-				props[key] = value
+							value = value.id()
+					elif isinstance(value, (list, tuple)) and len(value) > 0:
+						if isinstance(value[0], datetime):
+							value = [int( mktime(v.utctimetuple()) ) * 1000 for v in value]
+						elif isinstance(value[0], ndb.Key):
+							if fetch_keys:
+								value = [e.to_dict() for e in ndb.get_multi(value)]
+							else:
+								value = [k.id() for k in value]
+					props[key] = value
 		return props
 
 
