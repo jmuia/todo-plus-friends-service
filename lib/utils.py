@@ -149,7 +149,9 @@ class BaseHandler(webapp2.RequestHandler):
 			if prop in params:
 				value = params[prop]
 				prop_field = getattr(self.Model, prop)
-				if isinstance(prop_field, ndb.DateTimeProperty):
+				if isinstance(prop_field, ndb.ComputedProperty):
+					continue
+				elif isinstance(prop_field, ndb.DateTimeProperty):
 					if prop_field._repeated:
 						try:
 							value = [datetime.utcfromtimestamp( int(v/1000.0) ) for v in value]
@@ -332,7 +334,9 @@ class RESTHandler(BaseHandler):
 			return
 		entity = self.Model(key=existing_entity.key)
 		for prop, _ in self.Model._properties.iteritems():
-			entity.populate(**{ prop: getattr(existing_entity, prop) })
+			prop_field = getattr(self.Model, prop)
+			if not isinstance(prop_field, ndb.ComputedProperty):
+				entity.populate(**{ prop: getattr(existing_entity, prop) })
 		self._populate_entity(entity)
 		if not self._can_do('update', entity, existing_entity):
 			self.respond_error(403, 'forbidden')
