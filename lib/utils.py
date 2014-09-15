@@ -182,6 +182,9 @@ class BaseHandler(webapp2.RequestHandler):
 		self.response.write('An error occurred.')
 		mixpanel.smart_flush()
 
+	def security_headers(self):
+		self.response.headers['X-Frame-Options'] = 'DENY'
+
 	def cache_header(self, cache_life=0):
 		if cache_life:
 			self.response.headers['Cache-Control'] = 'public, max-age=%s' % cache_life
@@ -194,11 +197,13 @@ class BaseHandler(webapp2.RequestHandler):
 		self.response.headers['Access-Control-Max-Age'      ] = str(OPTIONS_CACHE)
 
 	def options(self, *args, **kwargs):
+		self.security_headers()
 		self.cors_headers()
 		self.response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 		self.cache_header(OPTIONS_CACHE)
 
 	def respond(self, data, content_type='application/json', cache_life=0, headers={}):
+		self.security_headers()
 		self.cors_headers()
 		self.cache_header(cache_life)
 
@@ -230,6 +235,7 @@ class BaseHandler(webapp2.RequestHandler):
 
 	def respond_error(self, code, message='', cache_life=0, headers={}):
 		self.response.set_status(code)
+		self.security_headers()
 		self.cors_headers()
 		self.cache_header(cache_life)
 		for header, value in headers.items():

@@ -6,6 +6,7 @@ from Queue  import Queue, Empty as EmptyQueueException, Full as FullQueueExcepti
 from time   import time
 
 from google.appengine.api import urlfetch
+from google.appengine.api import runtime
 
 MiXPANEL_TOKEN      = 'PUT_YOUR_TOKEN_HERE'
 API_URL             = 'http://api.mixpanel.com/track/'
@@ -15,6 +16,7 @@ DONT_FLUSH_QUEUE    = False
 
 queue      = Queue()
 last_flush = None
+runtime.set_shutdown_hook(flush)
 
 
 
