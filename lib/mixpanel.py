@@ -16,7 +16,6 @@ DONT_FLUSH_QUEUE    = False
 
 queue      = Queue()
 last_flush = None
-runtime.set_shutdown_hook(flush)
 
 
 
@@ -105,3 +104,5 @@ def flush(max_batches=10):
 		except Exception as e:
 			logging.error('failed to resolve urlfetch')
 			logging.exception(e)
+
+runtime.set_shutdown_hook(flush)

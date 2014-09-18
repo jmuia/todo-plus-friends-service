@@ -5,6 +5,7 @@ from os  import listdir
 path.append('./')
 
 import webapp2
+from google.appengine.ext import ndb
 
 from lib.utils import DEBUG
 
@@ -17,4 +18,4 @@ for file_name in listdir('api'):
 		api_module = __import__('api.%s' % api_name).__getattribute__(api_name)
 		routes    += api_module.routes
 
-app = webapp2.WSGIApplication(routes, debug=DEBUG)
+app = ndb.toplevel(webapp2.WSGIApplication(routes, debug=DEBUG))
