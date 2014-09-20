@@ -5,6 +5,8 @@ from datetime import datetime
 from json     import dumps as json_stringify
 from os.path  import dirname
 from time     import mktime
+from urllib   import urlencode
+from urlparse import parse_qs
 from unittest import TestCase
 
 from google.appengine.api           import apiproxy_stub, apiproxy_stub_map
@@ -145,10 +147,20 @@ class TestBase(TestCase):
 		method  = method.lower()
 		is_json = False
 
-		if data and (type(data) is dict) and (method in ['post', 'put', 'patch']):
-			is_json = True
-
-		#TODO: data as query param for other requests
+		if data and (type(data) is dict):
+			if method in ['post', 'put', 'patch']:
+				is_json = True
+			else:
+				parts = resource.split('?')
+				if len(parts) > 1:
+					try:
+						old_data = parse_qs('?'.join(parts[1:]))
+						old_data.update(data)
+						data = old_data
+					except:
+						pass
+				resource = parts[0]+'?'+urlencode(data)
+				data     = None
 
 		if is_json:
 			func = getattr(self.testapp, method.lower()+'_json')
