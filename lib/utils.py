@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime
-from json     import dumps as to_json, loads as from_json
+from json     import dumps as json_stringify, loads as json_parse
 from os       import environ
 from time     import mktime
 
@@ -109,7 +109,7 @@ class BaseHandler(webapp2.RequestHandler):
 	def initialize(self, *args, **kwargs):
 		value = super(BaseHandler, self).initialize(*args, **kwargs)
 		try:
-			self.body_params = from_json(self.request.body)
+			self.body_params = json_parse(self.request.body)
 		except:
 			self.body_params = {}
 		self.params = {}
@@ -218,7 +218,7 @@ class BaseHandler(webapp2.RequestHandler):
 				data = data.to_dict()
 			elif isinstance(data, (list, tuple)) and len(data) > 0 and isinstance(data[0], BaseModel):
 				data = [e.to_dict() for e in data]
-			data = to_json(data, separators=(',',':'))
+			data = json_stringify(data, separators=(',',':'))
 
 		# Let me begin with an apology. The Access-Control-Expose-Headers header is
 		# not supported on most devices and prevents me from sending the session
@@ -265,6 +265,8 @@ class RESTHandler(BaseHandler):
 				return False
 
 	def get(self, entity_id):
+		if entity_id and entity_id.isdigit():
+			entity_id = int(entity_id)
 		if not entity_id:
 			if self.get_list:
 				entities = self.get_list()
@@ -275,7 +277,7 @@ class RESTHandler(BaseHandler):
 			else:
 				self.respond(entities)
 		else:
-			entity = self.Model.get_by_id( int(entity_id) )
+			entity = self.Model.get_by_id(entity_id)
 			if entity is None:
 				self.respond_error(404, 'not found')
 			else:
@@ -285,15 +287,17 @@ class RESTHandler(BaseHandler):
 					self.respond(entity)
 
 	def post(self, entity_id):
+		if entity_id and entity_id.isdigit():
+			entity_id = int(entity_id)
 		if entity_id:
-			existing_entity = self.Model.get_by_id( int(entity_id) )
+			existing_entity = self.Model.get_by_id(entity_id)
 			if existing_entity is None:
 				self.respond_error(404, 'not found')
 				return
 		else:
 			existing_entity = None
 		if entity_id:
-			entity = self.Model(id=int(entity_id))
+			entity = self.Model(id=entity_id)
 		else:
 			entity = self.Model()
 		self._populate_entity(entity)
@@ -311,11 +315,13 @@ class RESTHandler(BaseHandler):
 				self.respond(entity)
 
 	def put(self, entity_id):
+		if entity_id and entity_id.isdigit():
+			entity_id = int(entity_id)
 		if not entity_id:
 			self.respond_error(405, 'method not allowed')
 			return
-		existing_entity = self.Model.get_by_id( int(entity_id) )
-		entity = self.Model(id=int(entity_id))
+		existing_entity = self.Model.get_by_id(entity_id)
+		entity = self.Model(id=entity_id)
 		self._populate_entity(entity)
 		if existing_entity:
 			if not self._can_do('update', entity, existing_entity):
@@ -331,10 +337,12 @@ class RESTHandler(BaseHandler):
 				self.respond(entity)
 
 	def patch(self, entity_id):
+		if entity_id and entity_id.isdigit():
+			entity_id = int(entity_id)
 		if not entity_id:
 			self.respond_error(405, 'method not allowed')
 			return
-		existing_entity = self.Model.get_by_id( int(entity_id) )
+		existing_entity = self.Model.get_by_id(entity_id)
 		if existing_entity is None:
 			self.respond_error(404, 'not found')
 			return
@@ -351,10 +359,12 @@ class RESTHandler(BaseHandler):
 			self.respond(entity)
 
 	def delete(self, entity_id):
+		if entity_id and entity_id.isdigit():
+			entity_id = int(entity_id)
 		if not entity_id:
 			self.respond_error(405, 'method not allowed')
 			return
-		entity = self.Model.get_by_id( int(entity_id) )
+		entity = self.Model.get_by_id(entity_id)
 		if entity is None:
 			self.respond_error(404, '')
 		else:
