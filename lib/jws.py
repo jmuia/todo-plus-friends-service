@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import logging
+from base64   import b64decode
 from datetime import datetime, timedelta
 from json     import loads as json_parse
 from urllib   import urlencode
@@ -81,4 +82,4 @@ def verify_jws(jws, username, hostname, debug=False):
 def get_jws_part(jws, index):
 	part = jws.split('.')[index]
 	part += '===='
-	return part.decode('base64')
+	return b64decode(part, '-_')
