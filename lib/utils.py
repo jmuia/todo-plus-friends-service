@@ -159,7 +159,10 @@ class BaseHandler(webapp2.RequestHandler):
 							raise BadValueError('failed to parse datetime')
 					else:
 						try:
-							value = datetime.utcfromtimestamp( int(value/1000.0) )
+							if value:
+								value = datetime.utcfromtimestamp( int(value/1000.0) )
+							else:
+								value = None
 						except:
 							raise BadValueError('failed to parse datetime')
 				elif isinstance(prop_field, ndb.KeyProperty):
@@ -168,9 +171,12 @@ class BaseHandler(webapp2.RequestHandler):
 						if None in ndb.get_multi(value):
 							raise BadValueError('stored key must reference an existing entity')
 					else:
-						value = ndb.Key(prop_field._kind, value)
-						if value.get() is None:
-							raise BadValueError('stored key must reference an existing entity')
+						if value:
+							value = ndb.Key(prop_field._kind, value)
+							if value.get() is None:
+								raise BadValueError('stored key must reference an existing entity')
+						else:
+							value = None
 				entity.populate(**{ prop: value })
 
 	def handle_exception(self, exception, debug):
