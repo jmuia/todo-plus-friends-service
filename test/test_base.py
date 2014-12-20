@@ -9,7 +9,7 @@ from urllib   import urlencode
 from urlparse import parse_qs
 from unittest import TestCase
 
-from google.appengine.api           import apiproxy_stub, apiproxy_stub_map
+from google.appengine.api           import apiproxy_stub, apiproxy_stub_map, urlfetch
 from google.appengine.api.blobstore import blobstore_stub, file_blob_storage
 from google.appengine.api.files     import file_service_stub
 from google.appengine.datastore     import datastore_stub_util
@@ -61,7 +61,7 @@ class URLFetchServiceMock(apiproxy_stub.APIProxyStub):
 				'content' : self._content,
 			}
 		if data['status'] is None:
-			raise Exception('urlfetch response not setup, call set_urlfetch_response')
+			raise urlfetch.DownloadError('Unable to fetch URL: {0} Error: test route not setup'.format(request.url()))
 
 		response.set_finalurl(request.url)
 		response.set_contentwastruncated(False)
