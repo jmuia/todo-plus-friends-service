@@ -4,7 +4,7 @@ var API = function (kik) {
 
 	// change the prefix to the host of your desire for testing
 	makeAPICall.prefix = 'https://myservice.appspot.com';
-	makeAPICall.auth = authenticatedAPICall
+	makeAPICall.auth = authenticatedAPICall;
 	return makeAPICall;
 
 
