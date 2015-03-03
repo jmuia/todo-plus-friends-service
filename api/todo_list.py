@@ -2,14 +2,13 @@
 
 from lib.utils import BaseHandler
 
-from model.user import User
 from model.todo_list import TodoList
 
 from google.appengine.ext import ndb
-import logging
 
 
 class CreateTodoListHandler(BaseHandler):
+
     def post(self, username):
         # TODO - hostname verification
 
@@ -17,16 +16,18 @@ class CreateTodoListHandler(BaseHandler):
         if self.username is None:
             self.respond_error(400)
 
-
         elif self.auth_params is None:
             self.respond_error(400)
 
         elif self.auth_params.get('name') is None:
             self.respond_error(400)
 
+        elif self.auth_params.get('items') is None:
+            self.respond_error(400)
+
         elif self.username != username:
             self.respond_error(403)
-       
+
         else:
             key = ndb.Key('User', self.username)
             user = key.get()
@@ -34,17 +35,56 @@ class CreateTodoListHandler(BaseHandler):
             if user is None:
                 self.respond_error(404)
             else:
-                todo_list = TodoList(name=self.auth_params.get('name'))
-                todo_list.put()
+
+                todo_list = TodoList(name=self.auth_params.get('name'),
+                                     items=self.auth_params.get('items'))
+                todo_key = todo_list.put()
+                user.todo_lists.append(todo_key)
+                user.put()
+
                 self.respond(todo_list)
 
 
 class TodoListHandler(BaseHandler):
+
     def get(self, username, entity_id):
 
         if entity_id and entity_id.isdigit():
             entity_id = int(entity_id)
-        
+
+        if self.username is None:
+            self.respond_error(400)
+
+        elif not entity_id:
+            self.respond_error(400)
+
+        elif self.username != username:
+            self.respond_error(403)
+
+        elif self.auth_params is None:
+            self.respond_error(400)
+
+        elif self.auth_params.get('items') is None:
+            self.respond_error(400)
+
+        else:
+            key = ndb.Key('User', username)
+            user = key.get()
+
+            if user is None:
+                self.respond_error(404)
+            else:
+                todo_list = TodoList.get_by_id(entity_id)
+
+                if todo_list is None:
+                    self.respond_error(404)
+                else:
+                    self.respond(todo_list)
+
+    def put(self, username, entity_id):
+        if entity_id and entity_id.isdigit():
+            entity_id = int(entity_id)
+
         if self.username is None:
             self.respond_error(400)
 
@@ -57,7 +97,7 @@ class TodoListHandler(BaseHandler):
         else:
             key = ndb.Key('User', username)
             user = key.get()
-            
+
             if user is None:
                 self.respond_error(404)
             else:
@@ -66,10 +106,11 @@ class TodoListHandler(BaseHandler):
                 if todo_list is None:
                     self.respond_error(404)
                 else:
+                    todo_list.items = self.auth_params.get('items')
+                    todo_list.put()
                     self.respond(todo_list)
 
 routes = [
-    (r'/users/(\w+)/todo-lists/'     , CreateTodoListHandler),
-    (r'/users/(\w+)/todo-lists/(\d*)', TodoListHandler      ),
+    (r'/users/(\w+)/todo-lists', CreateTodoListHandler),
+    (r'/users/(\w+)/todo-lists/(\d*)', TodoListHandler),
 ]
-

@@ -6,8 +6,6 @@ from model.user import User
 from model.todo_list import TodoList
 
 from google.appengine.ext import ndb
-from google.appengine.ext.ndb import metadata
-import logging
 
 
 class CreateUserHandler(BaseHandler):
