@@ -4,7 +4,7 @@ var API = function (kik) {
 
 	// change the prefix to the host of your desire for testing
 	// makeAPICall.prefix = 'https://myservice.appspot.com';
-	makeAPICall.prefix = 'http://localhost';
+	makeAPICall.prefix = 'http://localhost:8080';
 	makeAPICall.auth = authenticatedAPICall;
 	return makeAPICall;
 
