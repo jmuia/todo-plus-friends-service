@@ -25,9 +25,8 @@ class TodoList(BaseModel):
     name = ndb.StringProperty(required=True)
     items = ndb.JsonProperty(indexed=False, validator=validate_items)
 
-    @classmethod
-    def users(cls):
-        return User.query(User.todo_lists == cls.id)
+    def users(self):
+        return User.query(User.todo_lists == self.key().id())
 
     @classmethod
     def create_first_todo_list(cls):

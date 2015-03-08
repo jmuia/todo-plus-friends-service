@@ -76,8 +76,6 @@ class BaseModel(ndb.Model):
 			if key not in exclude and (include is None or key in include):
 				if hasattr(self, key):
 					value = getattr(self, key)
-					print "VALUEEEEEE"
-					print value
 					if isinstance(value, datetime):
 						value = int( mktime(value.utctimetuple()) ) * 1000
 					elif isinstance(value, ndb.Key):
@@ -235,7 +233,6 @@ class BaseHandler(webapp2.RequestHandler):
 			content_type += '; kik-session=%s' % self.kik_session
 
 		self.response.headers['Content-Type'] = content_type
-		print data
 		self.response.out.write(data)
 
 	def respond_error(self, code, message='', cache_life=0, headers={}):
