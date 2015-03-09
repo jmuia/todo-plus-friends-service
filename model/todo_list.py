@@ -3,7 +3,6 @@
 from google.appengine.ext import ndb
 
 from lib.utils import BaseModel
-from model.user import User
 import jsonschema
 
 
@@ -22,15 +21,6 @@ class TodoList(BaseModel):
             }
             jsonschema.validate(value, schema)
 
-    name = ndb.StringProperty(required=True)
+    name = ndb.StringProperty(required=True, indexed=False)
     items = ndb.JsonProperty(indexed=False, validator=validate_items)
-
-    def users(self):
-        return User.query(User.todo_lists == self.key().id())
-
-    @classmethod
-    def create_first_todo_list(cls):
-        todo_list = TodoList()
-        todo_list.name = "My First Todo List"
-        todo_list.items = [{"completed":False, "description":"something to do"}]
-        return todo_list.put()
+    users = ndb.KeyProperty(kind='User', repeated=True)

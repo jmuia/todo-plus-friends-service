@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from test_base import TestBase
-import logging
 
 
 class UserTest(TestBase):
@@ -13,13 +12,17 @@ class UserTest(TestBase):
             'hostname': self.HOSTNAME
         }).json
         assert user['id'] == self.USERNAME
-        assert len(user['todo_lists']) == 1
 
         user = self.auth_api_call('get', '/users/' + self.USERNAME, {
             'username': self.USERNAME,
             'hostname': self.HOSTNAME
         }).json
         assert user['id'] == self.USERNAME
-        assert len(user['todo_lists']) == 1
+
+        todo_lists = self.auth_api_call('get', '/users/' + self.USERNAME + '/todo-lists', {
+            'username': self.USERNAME,
+            'hostname': self.HOSTNAME
+        }).json
+        assert len(todo_lists) == 1
 
     # TODO def test_mocks(self):

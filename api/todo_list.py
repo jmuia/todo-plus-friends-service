@@ -3,6 +3,7 @@
 from lib.utils import BaseHandler
 
 from model.todo_list import TodoList
+from model.user import User
 
 from google.appengine.ext import ndb
 
@@ -29,13 +30,23 @@ class CreateTodoListHandler(BaseHandler):
             if user is None:
                 self.respond_error(404)
             else:
+                good_keys = [user.key]
+                if self.auth_params.get('users') is not None:
+                    for username in self.auth_params.get('users'):
+                        user = ndb.Key('User', username).get()
+                        if user is None:
+                            user = User(id=username)
+                            user.create_first_todo_list()
+                            key = user.put()
+                        else:
+                            key = user.key
+                        good_keys.append(key)
 
                 todo_list = TodoList(name=self.auth_params.get('name'),
-                                     items=self.auth_params.get('items') or [])
-                todo_key = todo_list.put()
-                user.todo_lists.append(todo_key)
-                user.put()
-
+                                     items=self.auth_params.get('items') or [],
+                                     users=good_keys)
+                
+                todo_list.put()
                 self.respond(todo_list)
 
 
@@ -63,7 +74,7 @@ class TodoListHandler(BaseHandler):
 
                 if todo_list is None:
                     self.respond_error(404)
-                elif todo_list.key not in user.todo_lists:
+                elif user.key not in todo_list.users:
                     self.respond_error(403)
                 else:
                     self.respond(todo_list)
@@ -96,11 +107,26 @@ class TodoListHandler(BaseHandler):
 
                 if todo_list is None:
                     self.respond_error(404)
-                elif todo_list.key not in user.todo_lists:
+                elif user.key not in todo_list.users:
                     self.respond_error(403)
                 else:
+                    good_keys = [user.key]
+                    if self.auth_params.get('users') is not None:
+                        for username in self.auth_params.get('users'):
+                            user = ndb.Key('User', username).get()
+                            if user is None:
+                                user = User(id=username)
+                                user.create_first_todo_list()
+                                key = user.put()
+                            else:
+                                key = user.key
+
+                            if key not in good_keys:
+                                good_keys.append(key)
+
                     todo_list.name = self.auth_params.get('name')
                     todo_list.items = self.auth_params.get('items') or []
+                    todo_list.users = good_keys
                     todo_list.put()
                     self.respond(todo_list)
 

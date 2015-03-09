@@ -23,11 +23,28 @@ class CreateUserHandler(BaseHandler):
 			# and create a default first todo list
 			if user is None:
 				user = User(id=self.username)
-				user.todo_lists = [TodoList.create_first_todo_list()]
+				user.create_first_todo_list()
 				user.put()
 
 			self.respond(user)
 
+
+class UserTodoListHandler(BaseHandler):
+	def get(self, username):
+
+		if self.username is None or not username:
+			self.respond_error(400)
+
+		elif self.username != username:
+			self.respond_error(403)
+
+		else:
+			key = ndb.Key('User', username)
+			user = key.get()
+			if user is None:
+				self.respond_error(404)
+			else:
+				self.respond(user.todo_lists())
 
 class UserHandler(BaseHandler):
 	def get(self, username):
@@ -49,4 +66,5 @@ class UserHandler(BaseHandler):
 routes = [
 	(r'/users'        , CreateUserHandler),
 	(r'/users/(\w*)'  , UserHandler      ),
+	(r'/users/(\w+)/todo-lists', UserTodoListHandler)
 ]
