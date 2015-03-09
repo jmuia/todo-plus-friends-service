@@ -15,10 +15,15 @@ import webapp2
 
 
 DEBUG         = ('Development' in environ.get('SERVER_SOFTWARE', 'Production'))
-ORIGINS       = '*' # verify the jws host instead of locking origin
 OPTIONS_CACHE = 365 * 24 * 60 * 60 # 1 year
 KIK_SESSION   = 'X-Kik-User-Session'
 KIK_JWS       = 'X-Kik-JWS'
+
+# do jws host later
+if DEBUG:
+	ORIGINS = '*' # verify the jws host instead of locking origin
+else:
+	ORIGINS = 'https://todo-plus-friends.herokuapp.com'
 
 
 
