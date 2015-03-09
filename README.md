@@ -1,4 +1,4 @@
-# Welcome to your AppEngine starter kit
+# Todo+Friends Service
 
 ### Setup
 
