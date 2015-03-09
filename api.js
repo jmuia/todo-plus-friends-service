@@ -3,8 +3,7 @@ var API = function (kik) {
 			TOKEN_KEY = '__KIK_SESSION__';
 
 	// change the prefix to the host of your desire for testing
-	// makeAPICall.prefix = 'https://myservice.appspot.com';
-	makeAPICall.prefix = 'http://localhost:8080';
+	makeAPICall.prefix = 'https://todo-plus-friends-service.appspot.com';
 	makeAPICall.auth = authenticatedAPICall;
 	return makeAPICall;
 
