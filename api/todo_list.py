@@ -30,22 +30,19 @@ class CreateTodoListHandler(BaseHandler):
             if user is None:
                 self.respond_error(404)
             else:
-                good_keys = [user.key]
-                if self.auth_params.get('users') is not None:
-                    for username in self.auth_params.get('users'):
-                        user = ndb.Key('User', username).get()
-                        if user is None:
-                            user = User(id=username)
-                            user.create_first_todo_list()
-                            key = user.put()
-                        else:
-                            key = user.key
-                        good_keys.append(key)
+
+                users_param = self.auth_params.get('users')
+                if users_param is not None:
+                    user_keys = users_param_to_keys(users_param)
+                    if user.key not in user_keys:
+                        user_keys.append(user.key)
+                else:
+                    user_keys = [user.key]
 
                 todo_list = TodoList(name=self.auth_params.get('name'),
                                      items=self.auth_params.get('items') or [],
-                                     users=good_keys)
-                
+                                     users=user_keys)
+
                 todo_list.put()
                 self.respond(todo_list)
 
@@ -110,25 +107,37 @@ class TodoListHandler(BaseHandler):
                 elif user.key not in todo_list.users:
                     self.respond_error(403)
                 else:
-                    good_keys = [user.key]
-                    if self.auth_params.get('users') is not None:
-                        for username in self.auth_params.get('users'):
-                            user = ndb.Key('User', username).get()
-                            if user is None:
-                                user = User(id=username)
-                                user.create_first_todo_list()
-                                key = user.put()
-                            else:
-                                key = user.key
 
-                            if key not in good_keys:
-                                good_keys.append(key)
+                    users_param = self.auth_params.get('users')
+                    if users_param is not None:
+                        user_keys = users_param_to_keys(users_param)
+                        if user.key not in user_keys:
+                            user_keys.append(user.key)
+                    else:
+                        user_keys = [user.key]
 
                     todo_list.name = self.auth_params.get('name')
                     todo_list.items = self.auth_params.get('items') or []
-                    todo_list.users = good_keys
+                    todo_list.users = user_keys
                     todo_list.put()
                     self.respond(todo_list)
+
+
+def users_param_to_keys(params):
+    keys = []
+    for username in params:
+        user = ndb.Key('User', username).get()
+        if user is None:
+            user = User(id=username)
+            user.create_first_todo_list()
+            key = user.put()
+        else:
+            key = user.key
+
+        if key not in keys:
+            keys.append(key)
+
+    return keys
 
 routes = [
     (r'/todo-lists',       CreateTodoListHandler),
